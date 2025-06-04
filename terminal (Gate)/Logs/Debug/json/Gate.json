@@ -1,0 +1,60 @@
+{
+  "command": "internal",
+  "input": "speak Hello",
+  "expected": "[depends on command]",
+  "actual": "Hello",
+  "discrepancy": "Mismatch — expected '[depends on command]', got 'Hello'",
+  "location": "OmniCommand",
+  "suggestions": [
+    "Validate command alias output mapping"
+  ],
+  "response": "Prompt",
+  "score": 90,
+  "severity": "Pass",
+  "timestamp": "2025-06-04T04:30:35.122513300+00:00"
+}
+{
+  "command": "internal",
+  "input": "speak hi",
+  "expected": "[depends on command]",
+  "actual": "hi",
+  "discrepancy": "Mismatch — expected '[depends on command]', got 'hi'",
+  "location": "OmniCommand",
+  "suggestions": [
+    "Validate command alias output mapping"
+  ],
+  "response": "Prompt",
+  "score": 90,
+  "severity": "Pass",
+  "timestamp": "2025-06-04T04:30:37.628272200+00:00"
+}
+{
+  "command": "external",
+  "input": "sol",
+  "expected": "[manual validation]",
+  "actual": "'sol' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+  "discrepancy": "Mismatch — expected '[manual validation]', got ''sol' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n'",
+  "location": "cmd.exe",
+  "suggestions": [
+    "Review command structure for escaping or path issues"
+  ],
+  "response": "Prompt",
+  "score": 80,
+  "severity": "Info",
+  "timestamp": "2025-06-04T04:30:39.380483300+00:00"
+}
+{
+  "command": "external",
+  "input": "mo",
+  "expected": "[manual validation]",
+  "actual": "'mo' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+  "discrepancy": "Mismatch — expected '[manual validation]', got ''mo' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n'",
+  "location": "cmd.exe",
+  "suggestions": [
+    "Review command structure for escaping or path issues"
+  ],
+  "response": "Prompt",
+  "score": 80,
+  "severity": "Info",
+  "timestamp": "2025-06-04T04:30:41.128273200+00:00"
+}

@@ -1,0 +1,1 @@
+F:\Project_Nova_Dawn\OmniCode\terminal\ (Gate)\target\debug\Gate_cli.exe: F:\Project_Nova_Dawn\OmniCode\terminal\ (Gate)\src\debugger.rs F:\Project_Nova_Dawn\OmniCode\terminal\ (Gate)\src\main_cli.rs F:\Project_Nova_Dawn\OmniCode\terminal\ (Gate)\src\registry.rs
