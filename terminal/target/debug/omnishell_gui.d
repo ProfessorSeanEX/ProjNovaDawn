@@ -1,0 +1,1 @@
+F:\Project_Nova_Dawn\OmniCode\terminal\target\debug\omnishell_gui.exe: F:\Project_Nova_Dawn\OmniCode\terminal\src\debugger.rs F:\Project_Nova_Dawn\OmniCode\terminal\src\main.rs F:\Project_Nova_Dawn\OmniCode\terminal\src\registry.rs

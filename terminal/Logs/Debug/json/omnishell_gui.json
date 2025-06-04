@@ -1,0 +1,15 @@
+{
+  "command": "Speak hi",
+  "input": "Speak hi",
+  "expected": "<user expectation>",
+  "actual": "'Speak' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+  "discrepancy": "Mismatch — expected '<user expectation>', got ''Speak' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n'",
+  "location": "TerminalApp::new",
+  "suggestions": [
+    "Review command output for minor drift"
+  ],
+  "response": "Prompt",
+  "score": 80,
+  "severity": "Info",
+  "timestamp": "2025-06-04T03:14:45.491198300+00:00"
+}

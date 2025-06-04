@@ -1,0 +1,9 @@
+F:\Project_Nova_Dawn\OmniCode\terminal\target\release\deps\libaccesskit_winit-305946d72582b162.rmeta: C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\lib.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\platform_impl\mod.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\platform_impl\windows.rs
+
+F:\Project_Nova_Dawn\OmniCode\terminal\target\release\deps\libaccesskit_winit-305946d72582b162.rlib: C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\lib.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\platform_impl\mod.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\platform_impl\windows.rs
+
+F:\Project_Nova_Dawn\OmniCode\terminal\target\release\deps\accesskit_winit-305946d72582b162.d: C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\lib.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\platform_impl\mod.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\platform_impl\windows.rs
+
+C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\lib.rs:
+C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\platform_impl\mod.rs:
+C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\accesskit_winit-0.16.1\src\platform_impl\windows.rs:

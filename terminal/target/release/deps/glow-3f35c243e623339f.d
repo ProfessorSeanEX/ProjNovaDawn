@@ -1,0 +1,10 @@
+F:\Project_Nova_Dawn\OmniCode\terminal\target\release\deps\libglow-3f35c243e623339f.rmeta: C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\lib.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\version.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\native.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\gl46.rs
+
+F:\Project_Nova_Dawn\OmniCode\terminal\target\release\deps\libglow-3f35c243e623339f.rlib: C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\lib.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\version.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\native.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\gl46.rs
+
+F:\Project_Nova_Dawn\OmniCode\terminal\target\release\deps\glow-3f35c243e623339f.d: C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\lib.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\version.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\native.rs C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\gl46.rs
+
+C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\lib.rs:
+C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\version.rs:
+C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\native.rs:
+C:\Users\seanj\scoop\persist\rustup\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\glow-0.16.0\src\gl46.rs:

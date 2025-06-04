@@ -1,0 +1,1 @@
+F:\Project_Nova_Dawn\OmniCode\terminal\target\release\omnishell_cli.exe: F:\Project_Nova_Dawn\OmniCode\terminal\src\debugger.rs F:\Project_Nova_Dawn\OmniCode\terminal\src\main_cli.rs F:\Project_Nova_Dawn\OmniCode\terminal\src\registry.rs

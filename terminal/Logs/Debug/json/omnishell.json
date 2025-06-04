@@ -1,0 +1,45 @@
+{
+  "command": "internal",
+  "input": "speak hello",
+  "expected": "[depends on command]",
+  "actual": "hello",
+  "discrepancy": "Mismatch — expected '[depends on command]', got 'hello'",
+  "location": "OmniCommand",
+  "suggestions": [
+    "Validate command alias output mapping"
+  ],
+  "response": "Prompt",
+  "score": 90,
+  "severity": "Pass",
+  "timestamp": "2025-06-04T03:15:47.298338900+00:00"
+}
+{
+  "command": "external",
+  "input": "spoko hi",
+  "expected": "[manual validation]",
+  "actual": "'spoko' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+  "discrepancy": "Mismatch — expected '[manual validation]', got ''spoko' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n'",
+  "location": "cmd.exe",
+  "suggestions": [
+    "Review command structure for escaping or path issues"
+  ],
+  "response": "Prompt",
+  "score": 80,
+  "severity": "Info",
+  "timestamp": "2025-06-04T03:15:51.845173100+00:00"
+}
+{
+  "command": "external",
+  "input": "hello",
+  "expected": "[manual validation]",
+  "actual": "'hello' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+  "discrepancy": "Mismatch — expected '[manual validation]', got ''hello' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n'",
+  "location": "cmd.exe",
+  "suggestions": [
+    "Review command structure for escaping or path issues"
+  ],
+  "response": "Prompt",
+  "score": 80,
+  "severity": "Info",
+  "timestamp": "2025-06-04T03:15:54.191529500+00:00"
+}
