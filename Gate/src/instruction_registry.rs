@@ -30,7 +30,7 @@ use std::collections::HashMap;
 /// 🧠 Bit Mode Compatibility  
 /// Specifies the compatible architecture bit modes for an instruction.
 #[derive(Debug)]
-enum BitMode {
+pub enum BitMode {
     /// Compatible with 32-bit systems.
     Bit32,
     /// Compatible with 64-bit systems.
@@ -43,7 +43,7 @@ enum BitMode {
 /// Describes potential side effects or status flags set by an instruction.
 /// Used during debugging, emulation, or internal cycle estimation.
 #[derive(Debug)]
-enum FlagEffect {
+pub enum FlagEffect {
     /// Sets the Zero flag (result = 0).
     SetsZero,
     /// Sets the Carry flag (used in arithmetic operations).
@@ -62,7 +62,7 @@ enum FlagEffect {
 /// Indicates the privilege level required to invoke the instruction.
 /// Enables future sandboxing, interpreter layers, or spiritual gating.
 #[derive(Debug)]
-enum PrivilegeLevel {
+pub enum PrivilegeLevel {
     /// Standard user-level instruction (safe in most contexts).
     User,
     /// Kernel-level instruction (can modify core system state).
@@ -82,48 +82,133 @@ pub struct Instruction {
     // --- MVP Core Fields ---
 
     /// The NovaScript keyword (e.g., `"let"`, `"walk"`).
-    keyword: &'static str,
+    pub keyword: &'static str,
 
     /// The scripture that anchors this instruction spiritually (KJV preferred).
-    verse_anchor: &'static str,
+    pub verse_anchor: &'static str,
 
     /// Traditional assembly equivalents (e.g., `MOV`, `JMP`, `CALL`).
-    traditional: &'static [&'static str],
+    pub traditional: &'static [&'static str],
 
     /// Category such as `"IO"`, `"Memory"`, `"Logic"`, etc.
-    category: &'static str,
+    pub category: &'static str,
 
     /// Human-readable explanation of what this instruction does.
-    description: &'static str,
+    pub description: &'static str,
 
     /// Unique byte opcode for the instruction (used in compilation).
-    opcode: u8,
+    pub opcode: u8,
 
     /// Expected operand format, such as `"target, value"` or `"address"`.
-    operand_format: Option<&'static str>,
+    pub operand_format: Option<&'static str>,
 
     /// Simulated or real compiled machine code as string for testing/visuals.
-    machine_code: &'static str,
+    pub machine_code: &'static str,
 
     /// Indicates if the instruction is valid for 32-bit, 64-bit, or both modes.
-    bit_mode: BitMode,
+    pub bit_mode: BitMode,
 
     // --- Phase 6 Extensions ---
 
     /// Optional explicit operand count (e.g., 2 for `let a, 5`).
-    operand_count: Option<u8>,
+    pub operand_count: Option<u8>,
 
     /// List of flag effects (e.g., alters flow, sets zero).
-    flags_effects: Option<Vec<FlagEffect>>,
+    pub flags_effects: Option<Vec<FlagEffect>>,
 
     /// Optional CPU cycle cost or spiritual weight for execution.
-    cycle_cost: Option<u16>,
+    pub cycle_cost: Option<u16>,
 
     /// Required privilege level to invoke this instruction.
-    privilege_level: Option<PrivilegeLevel>,
+    pub privilege_level: Option<PrivilegeLevel>,
 
     /// Optional group ID for categorizing instructions in bytecode encoders.
-    instruction_group_id: Option<u8>,
+    pub instruction_group_id: Option<u8>,
+}
+
+// ===============================================
+// 📦 Interface — Field Accessors for Instruction Struct
+// ===============================================
+//
+// 🔓 Why?
+//   - Enables structured, read-only access to each field in the `Instruction` struct.
+//   - Required for testing, introspection, or future GUI/table rendering.
+//   - Prevents direct struct access from external modules (e.g. `tests/`), preserving modular purity.
+//
+// 🧭 Kingdom Principle:
+//   What is holy inside the temple must be viewed through the veil with reverence—not by breaking walls.
+//
+
+impl Instruction {
+    /// Returns the primary NovaScript keyword (e.g., "let", "walk").
+    pub fn keyword(&self) -> &str {
+        self.keyword
+    }
+
+    /// Returns the verse anchor that spiritually roots this instruction.
+    pub fn verse_anchor(&self) -> &str {
+        self.verse_anchor
+    }
+
+    /// Returns the list of traditional assembly mnemonics (e.g., ["MOV", "JMP"]).
+    pub fn traditional(&self) -> &[&'static str] {
+        self.traditional
+    }
+
+    /// Returns the category this instruction belongs to (e.g., "Memory", "IO").
+    pub fn category(&self) -> &str {
+        self.category
+    }
+
+    /// Returns the human-readable description for documentation or dev tools.
+    pub fn description(&self) -> &str {
+        self.description
+    }
+
+    /// Returns the opcode byte value used for bytecode compilation.
+    pub fn opcode(&self) -> u8 {
+        self.opcode
+    }
+
+    /// Returns the operand format string, if any (e.g., "target, value").
+    pub fn operand_format(&self) -> Option<&'static str> {
+        self.operand_format
+    }
+
+    /// Returns the symbolic machine code representation (e.g., "72 TT VV").
+    pub fn machine_code(&self) -> &str {
+        self.machine_code
+    }
+
+    /// Returns a reference to the bit mode enum (e.g., BitMode::Both).
+    pub fn bit_mode(&self) -> &BitMode {
+        &self.bit_mode
+    }
+
+    /// Returns the explicit operand count, if defined (e.g., Some(2)).
+    pub fn operand_count(&self) -> Option<u8> {
+        self.operand_count
+    }
+
+    /// Returns a reference to the list of flag effects (if defined).
+    pub fn flags_effects(&self) -> Option<&Vec<FlagEffect>> {
+        self.flags_effects.as_ref()
+    }
+
+    /// Returns the estimated cycle cost of this instruction (or spiritual weight).
+    pub fn cycle_cost(&self) -> Option<u16> {
+        self.cycle_cost
+    }
+
+    /// Returns the privilege level required to execute this instruction.
+    pub fn privilege_level(&self) -> Option<&PrivilegeLevel> {
+        self.privilege_level.as_ref()
+    }
+
+    /// Returns the group ID used to categorize this instruction (if any).
+    pub fn instruction_group_id(&self) -> Option<u8> {
+        self.instruction_group_id
+    }
 }
 
 // ===============================================

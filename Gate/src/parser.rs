@@ -314,7 +314,8 @@ impl Parser {
     /// • `GroupMarker` → `parse_block()`        (e.g., `{ let x = 5 }`)
     ///
     /// ❗ Any unknown or invalid token yields a `ScrollNode::Error`
-    fn parse_node(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_node(&mut self) -> Option<ScrollNode> {
         let token = self.peek()?; // 👁 Preview current token without consuming it
 
         match token.token_type {
@@ -348,7 +349,8 @@ impl Parser {
     ///
     /// Retrieves and returns the token at the current position, then
     /// advances the parser’s cursor. Returns `None` if end of stream is reached.
-    fn advance(&mut self) -> Option<Token> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn advance(&mut self) -> Option<Token> {
         let tok = self.tokens.get(self.position).cloned(); // 🧤 Clone for safety — tokens are immutable
         if tok.is_some() {
             self.position += 1; // ➡️ Shift parser focus forward
@@ -360,7 +362,8 @@ impl Parser {
     ///
     /// Returns a reference to the token at the parser’s current position.
     /// This allows routing decisions without modifying cursor state.
-    fn peek(&self) -> Option<&Token> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn peek(&mut self) -> Option<&Token> {
         self.tokens.get(self.position) // 🔭 Look ahead for interpretation without movement
     }
 
@@ -376,7 +379,8 @@ impl Parser {
     ///
     /// 🔧 Debug mode (when enabled):
     /// - Logs instruction parse event with name and argument count
-    fn parse_instruction(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_instruction(&mut self) -> Option<ScrollNode> {
         let token = self.advance()?; // 🎯 Consume the instruction keyword
 
         if self.decode_instruction(&token).is_none() {
@@ -436,7 +440,8 @@ impl Parser {
     ///
     /// 🔧 Debug mode:
     /// - Logs captured literal and confirms parse success
-    fn parse_literal(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_literal(&mut self) -> Option<ScrollNode> {
         let token = self.advance()?; // 📥 Retrieve and consume literal token
 
         #[cfg(feature = "debug_mode")]
@@ -468,7 +473,8 @@ impl Parser {
     ///
     /// 🔧 Debug mode:
     /// - Logs identifier, expected branching pattern, and actual next token
-    fn parse_assignment_or_call(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_assignment_or_call(&mut self) -> Option<ScrollNode> {
         let identifier = self.advance()?; // 🔑 Consume variable or function name
         let next = self.peek()?; // 👁️ Inspect next token to resolve grammar type
 
@@ -498,7 +504,7 @@ impl Parser {
                 })
             }
             "(" => {
-                self.parse_call() // 📞 Hand off to function call walker
+                self.parse_call(identifier.value.clone()) // 📞 Hand off to function call walker
             }
             _ => {
                 // ❗ Unexpected pattern — raise error node for ambiguity
@@ -525,7 +531,8 @@ impl Parser {
     ///
     /// 🔧 Debug mode:
     /// - Logs captured metadata and its parsing context
-    fn parse_metadata(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_metadata(&mut self) -> Option<ScrollNode> {
         let token = self.advance()?; // 🧾 Consume metadata token from token stream
 
         #[cfg(feature = "debug_mode")]
@@ -555,7 +562,8 @@ impl Parser {
     ///
     /// 🔧 Debug mode:
     /// - Logs parsing of comment token and associated content
-    fn parse_comment(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_comment(&mut self) -> Option<ScrollNode> {
         let token = self.advance()?; // ✏️ Pull comment token from token stream
 
         #[cfg(feature = "debug_mode")]
@@ -592,7 +600,8 @@ impl Parser {
     ///
     /// 🔧 Debug mode:
     /// - Logs the full condition string and hints at structural expectation
-    fn walk_condition(&mut self) -> Option<String> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn walk_condition(&mut self) -> Option<String> {
         let mut condition = String::new(); // 🧱 Accumulator for token values
 
         while let Some(token) = self.peek() {
@@ -640,7 +649,8 @@ impl Parser {
     /// Returns `None` if `:` is not present.
     ///
     /// 🔧 Currently does not validate type name itself—reserved for type checker layer.
-    fn walk_type_annotation(&mut self) -> Option<String> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn walk_type_annotation(&mut self) -> Option<String> {
         let colon = self.peek()?; // 👁️ Look ahead for type indicator
         if colon.value != ":" {
             return None; // 🚫 No type hint present
@@ -665,7 +675,8 @@ impl Parser {
     /// - Starts after seeing `(`
     /// - Accepts identifiers, literals, and raw tokens
     /// - Skips commas, stops at `)`
-    fn parse_argument_list(&mut self) -> Result<Vec<String>, ParseError> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_argument_list(&mut self) -> Result<Vec<String>, ParseError> {
         let mut args = vec![];
 
         // 🔍 Ensure argument block starts with `(`
@@ -722,7 +733,8 @@ impl Parser {
     ///
     /// 🔎 Does not currently validate grammar or perform plural/singular agreement checks.
     /// Suitable for embedded natural language execution or proto-schema walking.
-    fn parse_scroll_sentence(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_scroll_sentence(&mut self) -> Option<ScrollNode> {
         let subject = self.advance()?.value; // 🙋 Who is acting
         let verb = self.advance()?.value; // 🗣️ What they do
         let object = self.advance()?.value; // 🎯 What is acted upon
@@ -765,7 +777,8 @@ impl Parser {
     ///
     /// Returns:
     /// - `ScrollNode::Declaration { name, dtype }`
-    fn parse_declaration(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_declaration(&mut self) -> Option<ScrollNode> {
         let _keyword = self.advance()?; // Expect `let`
         let name_token = self.advance()?; // Capture variable name
 
@@ -812,7 +825,8 @@ impl Parser {
     ///
     /// Returns:
     /// - `ScrollNode::Conditional { condition, body }`
-    fn parse_conditional(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_conditional(&mut self) -> Option<ScrollNode> {
         let _keyword = self.advance()?; // Expect `if` or similar keyword
         let condition = self.walk_condition()?; // Parse inline expression
         let body = self.parse_block(); // Parse following block as body
@@ -856,7 +870,8 @@ impl Parser {
     ///
     /// Returns:
     /// - `ScrollNode::Loop { condition, body }`
-    fn parse_loop(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_loop(&mut self) -> Option<ScrollNode> {
         let _keyword = self.advance()?; // Expect `while`, `for`, etc.
         let condition = self.walk_condition()?; // Extract loop condition
         let body = self.parse_block(); // Extract associated loop body
@@ -901,7 +916,8 @@ impl Parser {
     ///
     /// Returns:
     /// - `ScrollNode::Block(Vec<ScrollNode>)`
-    fn parse_instruction_group(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_instruction_group(&mut self) -> Option<ScrollNode> {
         let _open = self.advance()?; // Consume `[` token
         let mut group_nodes = vec![];
 
@@ -955,7 +971,8 @@ impl Parser {
     ///
     /// Returns:
     /// - `ScrollNode::Import(path_string)`
-    fn parse_import(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_import(&mut self) -> Option<ScrollNode> {
         let _keyword = self.advance()?; // 📥 Consume `import`
         let path_token = self.advance()?; // 📦 Expect string literal path (e.g. `"scroll.omni"`)
 
@@ -996,7 +1013,8 @@ impl Parser {
     ///
     /// Returns:
     /// - `ScrollNode::Return(value_string)`
-    fn parse_return(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_return(&mut self) -> Option<ScrollNode> {
         let _keyword = self.advance()?; // ⏎ Consume `return`
         let value_token = self.advance()?; // 🔍 Extract following literal or identifier
         let value = value_token.value;
@@ -1041,8 +1059,8 @@ impl Parser {
     /// Notes:
     /// - Currently supports **flat** arguments only (no nested expressions)
     /// - Commas are treated as separators, not syntax
-    fn parse_call(&mut self) -> Option<ScrollNode> {
-        let function_token = self.advance()?; // 📛 Function name
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_call(&mut self, function_token: String) -> Option<ScrollNode> {
         let open_paren = self.advance()?; // 🔓 Expect `(`
 
         if open_paren.value != "(" {
@@ -1088,7 +1106,7 @@ impl Parser {
         }
 
         Some(ScrollNode::Call {
-            function: function_token.value,
+            function: function_token,
             args,
         })
     }
@@ -1115,7 +1133,8 @@ impl Parser {
     ///
     /// Error Handling:
     /// - Emits `Error` node if `=` is missing
-    fn parse_assignment(&mut self, target: String) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_assignment(&mut self, target: String) -> Option<ScrollNode> {
         let next = self.advance()?; // 🔍 Expect '='
 
         if next.value != "=" {
@@ -1154,7 +1173,8 @@ impl Parser {
     /// Notes:
     /// - Gracefully halts if malformed or EOF encountered mid-block
     /// - Debug trail logs node count for auditing
-    fn parse_block(&mut self) -> Option<ScrollNode> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn parse_block(&mut self) -> Option<ScrollNode> {
         // 🧩 Expecting opening `{` group marker
         let open = self.advance()?;
         if open.value != "{" {
@@ -1217,7 +1237,8 @@ impl Parser {
     /// 🔍 Debug mode logs:
     /// - Whether the instruction is known
     /// - Suggests registry check or update if unrecognized
-    fn decode_instruction(&self, token: &Token) -> Option<String> {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn decode_instruction(&self, token: &Token) -> Option<String> {
         use crate::instruction_registry::get_instruction_registry; // 🧠 Registry of known instruction names
 
         let instruction = token.value.clone(); // Already a String 🧽 Normalize for consistent lookup
@@ -1264,7 +1285,8 @@ impl Parser {
     /// 📊 Debug logging (if enabled):
     /// - Shows raw SVO values
     /// - Suggests integration with more advanced validation logic
-    fn is_valid_sentence(&self, subject: &str, verb: &str, object: Option<&str>) -> bool {
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
+    pub fn is_valid_sentence(&self, subject: &str, verb: &str, object: Option<&str>) -> bool {
         let has_subject = !subject.trim().is_empty();
         let has_verb = !verb.trim().is_empty();
         let has_valid_object = object.map(|o| !o.trim().is_empty()).unwrap_or(true);

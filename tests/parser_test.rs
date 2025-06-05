@@ -13,7 +13,7 @@ fn token(t: TokenType, value: &str) -> Token {
 #[test]
 fn test_instruction_with_args() {
     let tokens = vec![
-        token(TokenType::Instruction, "invoke"),
+        token(TokenType::Instruction, "walk"),
         token(TokenType::Literal, "\"truth\""),
         token(TokenType::Operator, "+5"),
     ];
@@ -22,7 +22,7 @@ fn test_instruction_with_args() {
 
     match node {
         ScrollNode::Instruction { name, args } => {
-            assert_eq!(name, "invoke");
+            assert_eq!(name, "walk");
             assert_eq!(args, vec!["\"truth\"", "+5"]);
         }
         _ => panic!("Expected Instruction node"),
@@ -71,7 +71,7 @@ fn test_assignment_parsing() {
 #[test]
 fn test_function_call() {
     let tokens = vec![
-        token(TokenType::Identifier, "call"),
+        token(TokenType::Identifier, "invoke"),
         token(TokenType::Punctuation, "("),
         token(TokenType::Literal, "\"grace\""),
         token(TokenType::Punctuation, ","),
@@ -83,7 +83,7 @@ fn test_function_call() {
 
     match node {
         ScrollNode::Call { function, args } => {
-            assert_eq!(function, "call");
+            assert_eq!(function, "invoke");
             assert_eq!(args, vec!["\"grace\"", "\"mercy\""]);
         }
         _ => panic!("Expected Call node"),
