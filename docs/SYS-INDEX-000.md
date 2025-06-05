@@ -19,12 +19,13 @@
 
 ## 📚 Master Scroll Index
 
-| Dev Log ID | Title                          | Path                                                                 | Summary                                                  | Time Span              |
-| ---------- | ------------------------------ | -------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------- |
-| 001        | Initial Setup & Invocation      | [Dev_Log_001.md](Dev_Logs\dev_log_1_initial_setup.md)                             | Project bootstrapped with CLI entry, first output made   | 2025-06-01             |
-| 002        | Terminal Online                 | [Dev_Log_002.md](Dev_Logs\dev_log_2_terminal_online.md)                             | CLI + GUI terminals brought online, registry initialized | 2025-06-02             |
-| 003        | Debugger Built                  | [Dev_Log_003.md](Dev_Logs\dev_log_3_debugger_built.md)                             | `DebugEntry` and diagnostic architecture completed        | 2025-06-03             |
-| 004        | Debugger Online                 | [Dev_Log_004.md](Dev_Logs\dev_log_4_debugger_online.md)                             | Log writers activated, CLI/GUI test pass + patch logs    | 2025-06-03 → 2025-06-04 |
+| Dev Log ID | Title                           | Path                                                          | Summary                                                  | Time Span               |
+| ---------- | ------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- | ----------------------- |
+| 001        | Initial Setup & Invocation      | [Dev\_Log\_001.md](Dev_Logs\dev_log_1_initial_setup.md)       | Project bootstrapped with CLI entry, first output made   | 2025-06-01              |
+| 002        | Terminal Online                 | [Dev\_Log\_002.md](Dev_Logs\dev_log_2_terminal_online.md)     | CLI + GUI terminals brought online, registry initialized | 2025-06-02              |
+| 003        | Debugger Built                  | [Dev\_Log\_003.md](Dev_Logs\dev_log_3_debugger_built.md)      | `DebugEntry` and diagnostic architecture completed       | 2025-06-03              |
+| 004        | Debugger Online                 | [Dev\_Log\_004.md](Dev_Logs\dev_log_4_debugger_online.md)     | Log writers activated, CLI/GUI test pass + patch logs    | 2025-06-03 → 2025-06-04 |
+| 005        | Tablet Inscriptions Initialized | [Dev\_Log\_005.md](Dev_Logs\dev_log_5_tablet_inscriptions_initialized.md) | Instruction registry formalized, `Tablet` system born    | 2025-06-04 → 2025-06-05 |
 
 ---
 

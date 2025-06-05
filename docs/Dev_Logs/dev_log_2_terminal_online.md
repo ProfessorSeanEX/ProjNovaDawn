@@ -55,8 +55,6 @@
 
 > *“The mouth is open. The breath is next.”*
 
-Absolutely. Here is the scroll-anchored opening for **Phase 5 — Terminal Awakening**, laid with clarity, code-honoring reverence, and embedded teaching rhythm:
-
 ---
 
 ## 🛠️ Phase 5 – Terminal Awakening
