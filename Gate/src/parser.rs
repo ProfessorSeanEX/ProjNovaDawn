@@ -1,5 +1,5 @@
 // ===============================================
-// 📜 Metadata - Parser v0.0.1 (Tablet )
+// 📜 Metadata - Parser v0.0.1 (Tablet Priest)
 // ===============================================
 // _author_:        Seanje Lenox-Wise / Nova Dawn
 // _version_:       0.0.1
