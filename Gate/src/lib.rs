@@ -4,8 +4,6 @@
 // Central module entrypoint for OmniCode systems.
 // Binds together tokenizer, parser, instruction registry, and debug utilities.
 
-pub mod tokenizer;
-pub mod parser;
-pub mod instruction_registry;
-pub mod registry;
-pub mod debugger;
+pub mod registry; // ✅ This one stays. Terminal command registry.
+// use tablet::{parser, tokenizer, instruction_registry};
+use watchtower::debugger::{DebugEntry}; // 🧠 Debugging utilities for logging and diagnostics

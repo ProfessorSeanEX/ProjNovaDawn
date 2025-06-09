@@ -1,0 +1,1 @@
+F:\Project_Nova_Dawn\OmniCode\target\debug\Gate_gui.exe: F:\Project_Nova_Dawn\OmniCode\Gate\src\lib.rs F:\Project_Nova_Dawn\OmniCode\Gate\src\main.rs F:\Project_Nova_Dawn\OmniCode\Gate\src\registry.rs F:\Project_Nova_Dawn\OmniCode\Watchtower\src\alignment_score.rs F:\Project_Nova_Dawn\OmniCode\Watchtower\src\debugger.rs F:\Project_Nova_Dawn\OmniCode\Watchtower\src\lib.rs

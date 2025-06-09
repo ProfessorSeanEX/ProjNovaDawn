@@ -1,0 +1,1 @@
+F:\Project_Nova_Dawn\OmniCode\target\debug\libwatchtower.rlib: F:\Project_Nova_Dawn\OmniCode\Watchtower\src\alignment_score.rs F:\Project_Nova_Dawn\OmniCode\Watchtower\src\debugger.rs F:\Project_Nova_Dawn\OmniCode\Watchtower\src\lib.rs

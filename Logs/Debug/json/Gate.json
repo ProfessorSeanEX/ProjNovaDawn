@@ -1,0 +1,30 @@
+{
+  "command": "internal",
+  "input": "speak hello",
+  "expected": "[depends on command]",
+  "actual": "hello",
+  "discrepancy": "Mismatch — expected '[depends on command]', got 'hello'",
+  "location": "OmniCommand",
+  "suggestions": [
+    "Validate command alias output mapping"
+  ],
+  "response": "Prompt",
+  "score": 90,
+  "severity": "Pass",
+  "timestamp": "2025-06-09T05:23:34.825288300+00:00"
+}
+{
+  "command": "external",
+  "input": "hello",
+  "expected": "[manual validation]",
+  "actual": "'hello' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+  "discrepancy": "Mismatch — expected '[manual validation]', got ''hello' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n'",
+  "location": "cmd.exe",
+  "suggestions": [
+    "Review command structure for escaping or path issues"
+  ],
+  "response": "Prompt",
+  "score": 80,
+  "severity": "Info",
+  "timestamp": "2025-06-09T05:23:39.427670400+00:00"
+}

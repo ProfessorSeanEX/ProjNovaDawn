@@ -1,31 +1,8 @@
-[package]
-name = "OmniCode"
-version = "0.1.0"
-edition = "2024"  # ← Currently, 2024 isn't stable. Use 2021 or 2024-nightly with toolchain override.
+[workspace]
+members = [
+    "Gate",
+    "Tablet",
+    "Watchtower"
+]
 
-[dependencies]
-chrono = "0.4.41"
-eframe = "0.31.1"
-egui = "0.31.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-[lib]
-name = "gate"
-path = "Gate/src/lib.rs"
-
-[features]
-debug_mode = []
-
-[[bin]]
-name = "Gate_cli"
-path = "Gate/src/main_cli.rs"  # ✅ Correct relative path from OmniCode root
-
-[[bin]]
-name = "Gate_gui"
-path = "Gate/src/main.rs"      # ✅ Same here
-
-# OmniCode/rust-toolchain.toml
-[toolchain]
-channel = "nightly"
-components = ["rustfmt", "clippy"]
+resolver = "2"  # ✅ Since you're on edition 2021+

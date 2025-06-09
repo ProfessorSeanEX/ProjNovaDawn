@@ -1,0 +1,15 @@
+{
+  "command": "hello",
+  "input": "hello",
+  "expected": "<user expectation>",
+  "actual": "'hello' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+  "discrepancy": "Mismatch — expected '<user expectation>', got ''hello' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n'",
+  "location": "TerminalApp::new",
+  "suggestions": [
+    "Review command output for minor drift"
+  ],
+  "response": "Prompt",
+  "score": 80,
+  "severity": "Info",
+  "timestamp": "2025-06-09T05:23:10.159370600+00:00"
+}

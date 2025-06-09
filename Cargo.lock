@@ -3,17 +3,6 @@
 version = 4
 
 [[package]]
-name = "OmniCode"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "eframe",
- "egui",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "ab_glyph"
 version = "0.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1167,6 +1156,18 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "gate"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "eframe",
+ "egui",
+ "serde",
+ "serde_json",
+ "watchtower",
 ]
 
 [[package]]
@@ -2728,6 +2729,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tablet"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "gate",
+ "serde",
+ "serde_json",
+ "watchtower",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3056,6 +3068,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a05d73b933a847d6cccdda8f838a22ff101ad9bf93e33684f39c1f5f0eece3d"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "watchtower"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

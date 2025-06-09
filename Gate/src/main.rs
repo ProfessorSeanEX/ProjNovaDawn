@@ -41,8 +41,8 @@ use std::thread;
 mod registry; // 🔗 Link to the internal OmniCommand registry module
 use registry::CommandRegistry; // ⛓️ Import the command registry for OmniCommands
 
-mod debugger; // 🧪 Link to Watchtower diagnostics module
-use debugger::DebugEntry; // 📜 Import primary debug structure
+use watchtower::debugger; // 🧪 Link to Watchtower diagnostics module
+use watchtower::debugger::DebugEntry; // 📜 Import primary debug structure
 
 // ===============================================
 // 🔧 Body — TerminalApp Struct & GUI Logic

@@ -33,7 +33,7 @@ use std::process::{Command, Stdio};
 mod registry; // 🔗 Link to the internal OmniCommand registry module
 use registry::CommandRegistry; // ⛓️ Bring the registry struct into scope
 
-mod debugger; // 🧠 Link to Watchtower scoring + log module
+use watchtower::debugger; // 🧠 Link to Watchtower scoring + log module
 use debugger::{DebugEntry}; // 📜 Bring core diagnostic structs into scope
 
 // ===============================================
