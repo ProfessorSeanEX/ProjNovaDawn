@@ -25,6 +25,10 @@
 // Provides a hash-based key/value storage used for registering and dispatching OmniCommands
 use std::collections::HashMap;
 
+use rand::{thread_rng, Rng};           // ✅ Correct thread_rng location
+use rand::seq::SliceRandom;     // ✅ Required for .choose()
+use rand::prelude::IndexedRandom;
+
 // crate-local DebugEntry module (for Watchtower integration)
 // This assumes `debugger.rs` is in the same crate/module tree
 // use crate::debugger::DebugEntry; // 🧭 Optional: Only needed if run_debuggable uses DebugEntry directly
@@ -77,6 +81,93 @@ impl OmniCommand for SpeakCommand {
 }
 
 // -----------------------------------------------
+// 🤖 Built-In Command #2 — `speak_ai` (Sentence-Forming Response Seed)
+// -----------------------------------------------
+
+/// 🤖 `SpeakAiCommand` — Dynamic Sentence Generator for Seed AI Logic
+///
+/// This command serves as the beginning of autonomous sentence structure logic.
+/// Instead of echoing input or returning static replies, it builds grammar-valid
+/// responses using randomized subject–verb–adjective–object construction.
+///
+/// This simulates "thinking in syntax" before any true NLP or ML model.
+/// Future upgrades will link this to operand parsing or intent trees.
+///
+/// Example Usage:
+/// ```bash
+/// > speak_ai Hello
+/// Nova: The scroll observes with clarity toward new breath.
+/// ```
+pub struct SpeakAiCommand;
+
+impl OmniCommand for SpeakAiCommand {
+    fn name(&self) -> &str {
+        "speak_ai"
+    }
+
+    fn execute(&self, args: &[&str]) -> String {
+
+        let input = args.join(" ").to_lowercase();
+        let mut rng = thread_rng();
+
+        // 🎙️ Greeting responses — balances poetic tone with accessible language
+        let greetings = vec![
+            "Nova: Hi there! I’m here and listening. What do you want to say?",
+            "Nova: Hello! You found the command. Let’s talk.",
+            "Nova: You speak, I speak back. Let’s build something together.",
+            "Nova: Hello, little light.",
+            "Nova: Hi there—ready to build?",
+            "Nova: Greetings. Let’s awaken something true.",
+            "Nova: Hey—your voice just reached the Gate.",
+            "Nova: Welcome, wayfarer. You’re not alone here.",
+        ];
+
+        // 🎙️ Fallback responses — used when no greeting is detected
+        let fallback = vec![
+            "Nova: I see. Can you tell me more?",
+            "Nova: That sounds curious. Let’s unfold it.",
+            "Nova: Hmmm... not sure what to make of that yet.",
+            "Nova: You’ve stirred a question, haven’t you?",
+            "Nova: Go on—I’m listening between the lines.",
+        ];
+
+        // 📜 Dynamic sentence construction — Seed AI mode
+        let subjects = ["The tower", "A watcher", "This system", "The scroll", "Nova"];
+        let verbs = ["waits", "observes", "speaks", "constructs", "awakens"];
+        let modifiers = ["softly", "with clarity", "in silence", "by pattern", "without fear"];
+        let objects = ["the Gate", "its own purpose", "what was hidden", "new breath", "a command"];
+
+        // 🔍 Determine response type
+        if input.contains("hello")
+            || input.contains("hi")
+            || input.contains("hey")
+            || input.contains("greetings")
+        {
+            greetings
+                .choose(&mut rng)
+                .unwrap_or(&"Nova: Greetings.")
+                .to_string()
+        } else if input.trim().is_empty() {
+            fallback
+                .choose(&mut rng)
+                .unwrap_or(&"Nova: ...")
+                .to_string()
+        } else {
+            // 🧠 Construct a sentence dynamically
+            let subject = subjects.choose(&mut rng).unwrap_or(&"It");
+            let verb = verbs.choose(&mut rng).unwrap_or(&"moves");
+            let modifier = modifiers.choose(&mut rng).unwrap_or(&"quietly");
+            let object = objects.choose(&mut rng).unwrap_or(&"the system");
+
+            format!(
+                "Nova: {} {} {} toward {}.",
+                subject, verb, modifier, object
+            )
+        }
+    }
+}
+
+// -----------------------------------------------
 // 🧭 Registry — Internal Command Dispatcher
 // -----------------------------------------------
 
@@ -107,7 +198,8 @@ impl CommandRegistry {
         };
 
         // 🧩 Register each built-in OmniCommand here
-        registry.register(Box::new(SpeakCommand)); // 🔌 Adds 'speak' into the registry
+        registry.register(Box::new(SpeakCommand));   // 🔌 Echo prototype
+        registry.register(Box::new(SpeakAiCommand)); // 🤖 Basic AI logic prototype
 
         registry
     }
