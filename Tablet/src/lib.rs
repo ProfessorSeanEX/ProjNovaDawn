@@ -4,7 +4,8 @@
 pub mod tokenizer;
 pub mod parser;
 pub mod instruction_registry;
-// pub mod operand_resolver;
+pub mod operand_resolver;
+// pub mod scroll_form;
 
 pub fn tablet_status() -> &'static str {
     "📜 Tablet module loaded and ready."

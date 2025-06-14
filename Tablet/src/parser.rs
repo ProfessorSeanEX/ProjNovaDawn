@@ -1,151 +1,187 @@
 // ===============================================
-// 📜 Metadata - Parser v0.0.1 (Tablet Priest)
+// 📜 Metadata — Parser v0.0.3 (Tablet Priest)
 // ===============================================
-// _author_:        Seanje Lenox-Wise / Nova Dawn
-// _version_:       0.0.1
-// _status_:        Dev
-// _created_:       2025-06-04
-// _last updated_:  2025-06-04
-// _license_:       CreativeWorkzStudio LLC — Kingdom-First Proprietary Use
-// _component_:     Parser (Tablet Cog)
-// _project_:       OmniCode / Millennium OS
-// _description_:   Converts token streams into Scroll Trees (OmniCode ASTs) using sentence-based grammar rules.
+// _author_:         Seanje Lenox-Wise / Nova Dawn
+// _version_:        0.0.3
+// _status_:         Dev
+// _phase_:          Phase 3 — Post-Stub Validation (Scroll-Aware)
+// _created_:        2025-06-04
+// _last updated_:   2025-06-14
+// _license_:        CreativeWorkzStudio LLC — Kingdom-First Proprietary Use
+// _component_:      Parser (Tablet Cog)
+// _project_:        OmniCode / Millennium OS
+// _description_:    Converts token streams into Scroll Trees (OmniCode ASTs) using sentence-based grammar rules and instruction logic.
+//
+// _grammar schema_: Subject–Verb–Object, Instruction (opcode-style), Expression Blocks
+// _validation hooks_: Debug-aware grammar validator, operand resolver integration
 //
 // _notes_:
-// - Parses tokenized input into executable logical nodes
-// - Supports sentence-structure and scroll-style node types
-// - Future support: grammar inference, instruction decoding hooks, error correction
-// - Core link between tokenizer and compiler backend
+// - Parses tokenized input into executable ScrollNode variants
+// - Supports sentence, opcode, and logic block structures
+// - Instruction decoder uses registry-backed lookup
+// - Grammar validation supports early SVO and return checks
+// - Operand resolver refactors handled where applicable
+// - `.stone` output format is intermediate and version-neutral
+// - Future support: Scripture-aligned .logos hooks, type propagation, schema reflection
+//
 // ===============================================
 
 // ===============================================
-// 🌀 Opening — Imports & Declarations
+// 📖 Opening — Parser Module Purpose & Design
 // ===============================================
-// This section declares all dependencies used in the Parser module.
-// It includes standard libraries, timestamping, tokenizer input, instruction metadata,
-// and debugging scaffolding required for scroll parsing and sentence validation.
+// This module interprets NovaScript token streams into scroll structures.
+// It transforms raw symbols into spiritual and structural meaning,
+// producing a ScrollTree composed of ScrollNodes for operand resolution.
+//
+// The Parser sits between the Tokenizer and Operand Resolver (Bearer),
+// bridging syntactic intention with resolved instruction form.
+// It reports misalignments to the Watchtower via debug entries and severity signals.
 
-// === Standard Library Imports ===
+// ===============================================
+// 📦 Imports — Dependencies for Parser Construction
+// ===============================================
+// These imports are grouped by origin and function:
+// • Standard: parsing queues, formatting tools
+// • External: timestamping for trace metadata
+// • Internal: tokenizer, instruction metadata, operand resolver
+// • Debugging: Watchtower trace scaffolding
 
+// === Standard Library ===
+use std::collections::VecDeque; // 🔁 Token queue for recursive descent parsing
 #[allow(unused_imports)]
-use chrono::Utc;
-use std::collections::VecDeque; // 🔁 Used as a token queue for recursive descent parsing—ensures ordered traversal
+use std::fmt; // 🧾 Enables custom Display / Debug formatting for ScrollTree or error logs
 
+// === External Crates ===
 #[allow(unused_imports)]
-use std::fmt; // 🧾 Enables custom Display/Debug formatting for AST or ScrollTree output // 🕰 Timestamps each parse event for metadata anchoring, debug traceability
+use chrono::Utc; // 🕰 Timestamps parse events for trace diagnostics and scroll lineage
 
-// === Internal Module Imports ===
+// === Internal Modules ===
+use super::instruction_registry::get_instruction_registry; // 📚 Instruction schema registry — validates opcodes and operand expectations
+use crate::operand_resolver::Bearer;
+use crate::tokenizer::{Token, TokenType}; // 🧱 Core units of NovaScript — value, type, and source position // 🧱 Operand Resolver — performs operand classification after parsing
 
-use crate::tokenizer::{Token, TokenType};
-// 🧱 Core units of NovaScript: token value, type classification, and source location (line, column)
-
-use super::instruction_registry::get_instruction_registry;
-// 📚 Registry of valid instructions—used to validate opcodes, operand schemas, and spiritual posture
-
+// === Watchtower Integration ===
 #[allow(unused_imports)]
 use watchtower::debugger::{
-    DebugEntry, // 📋 Snapshot of a single parse attempt—contains source, line, message, severity
-    DebugResponse, // 🔧 Represents corrective or confirmational feedback for system or AI agent
-    Severity,   // 🌡 Enum to classify alignment breaches: Fatal, Drifted, Valid, etc.
-}; // 🪛 The Watchtower speaks through these: Parser reports all sentence validation here
+    DebugEntry,    // 📋 Individual trace record — includes line, source, and severity
+    DebugResponse, // 🔧 Feedback object for system-level debugging or confirmation
+    Severity,      // 🌡 Classifies alignment state: Valid, Drifted, Fatal, etc.
+}; // 🪛 The Watchtower watches over all misalignment and confirmation logs
 
 // ===============================================
 // 📦 Foundational Declarations — Core Structures
 // ===============================================
-// These declarations form the base architecture of the Scroll Parser.
-// No execution logic resides here—only core structures that define
-// how sentences are captured, represented, and prepared for interpretation.
+// This section defines the elemental structures of the Scroll Parser.
+// These declarations form the spiritual and architectural baseline for parsing logic,
+// representing NovaScript scrolls in a structured, intermediate form.
 //
-// This section includes:
-// • `ScrollNode`: The building blocks of parsed sentence meaning
-// • `ScrollTree`: A structured container for scroll-level node sets
-// • Parser structs (`ScrollParser`, `Parser`): Responsible for walking tokens and forming node chains
+// Execution logic does not live here—only the **types** and **forms** the system will interpret.
+//
+// Included Structures:
+// • `ScrollNode` — the atomic meaning-bearing units of NovaScript
+// • `ScrollTree` — an AST-like container for parsed scrolls
+// • `ScrollParser` (legacy) — basic token walker for backward compatibility
+// • `Parser` — the current, operand-aware parser interface
 
+// ------------------------------------------------
+// 🧩 ScrollNode — Sentence-Level Grammar Structures
+// ------------------------------------------------
 /// 🧩 Enum representing all valid node types produced by the parser.
-/// These are the elemental scroll structures—each one representing a distinct sentence form,
-/// value expression, or system directive.
+/// These nodes are not yet operands or bindings—they are raw structures,
+/// capturing grammatical meaning and scroll intent in intermediate form.
 #[derive(Debug, Clone)]
 pub enum ScrollNode {
     Instruction {
         name: String,
         args: Vec<String>,
     },
-    // 🪶 A named instruction with one or more arguments (e.g., invoke("light.fire"))
+    // 🪶 An explicit instruction invocation with positional arguments
+    //     → e.g., `invoke("light.fire")`
     ScrollSentence {
         subject: String,
         verb: String,
         object: String,
     },
-    // 🧾 A full NovaScript sentence with structure (e.g., Let x be set to 6)
+    // 🧾 A NovaScript sentence with SVO structure
+    //     → e.g., `Let flame be set to 5`
     Assignment {
         target: String,
         value: String,
     },
-    // 📦 Variable binding or mutation (e.g., holiness = 100)
+    // 📦 A binding or reassignment expression
+    //     → e.g., `holiness = 100`
     Literal(String),
-    // ✍️ A raw or primitive value (string, number, boolean, etc.)
+    // ✍️ A standalone literal value: number, boolean, or raw string
     Metadata(String),
-    // 📘 System or scroll metadata, often marked by special comment notation (e.g., // author)
+    // 📘 Metadata notation (e.g., authorship, tags)
+    //     → e.g., `// author: seanje`
     Block(Vec<ScrollNode>),
-    // 🧱 A grouped sequence of child nodes (e.g., loop body, function scope)
+    // 🧱 A grouped node set (typically for loops or conditionals)
     Error(String),
-    // ❌ A fallback node when parsing fails—contains diagnostic message
+    // ❌ An error node—holds parse failure diagnostics
 
-    // ⚙️ Optional & emerging structures — extensible architecture
+    // ⚙️ Optional & emerging structural variants
     Declaration {
         name: String,
         dtype: Option<String>,
     },
-    // ✒️ Variable or symbol declaration with optional type (e.g., let x: int)
+    // ✒️ A variable or type declaration
+    //     → e.g., `let x: int`
     Conditional {
         condition: String,
         body: Vec<ScrollNode>,
     },
-    // 🧭 Conditional block structure (e.g., if/else with internal nodes)
+    // 🧭 An `if` or `match` block with scoped condition and child nodes
     Loop {
         condition: String,
         body: Vec<ScrollNode>,
     },
-    // 🔁 Loop block structure (e.g., while condition { ... })
+    // 🔁 A repeat-until or while-style loop with inner body
     Import(String),
-    // 📥 File or scroll import directive
+    // 📥 Scroll or module import directive
     Return(String),
-    // 🔚 Return value from within function or block
+    // 🔚 Early return with output value
     Call {
         function: String,
         args: Vec<String>,
     },
-    // 📞 Function call or pipeline invocation (used in nested expressions)
+    // 📞 A function call node (used in nested or procedural expressions)
     Comment(String),
-    // 💬 Non-executing annotation or note (inline or overcomment)
+    // 💬 A non-evaluated annotation (inline or floating comment)
 }
 
-/// 📚 The full parsed result of a NovaScript scroll.
-/// Acts as an AST-like container and provides a complete, ordered structure
-/// of what the system can interpret, compile, or review.
+// ------------------------------------------------
+// 📚 ScrollTree — Top-Level Scroll Container
+// ------------------------------------------------
+/// 📚 Represents a fully parsed NovaScript scroll.
+/// Functions as the top-level AST, ordered by sequence of declarations.
 pub struct ScrollTree {
     pub nodes: Vec<ScrollNode>,
-    // 🔗 All top-level nodes in the scroll—order matters
+    // 🔗 All top-level nodes in order of appearance (execution flow matters)
 }
-
-/// 🌀 Legacy parser implementation.
-/// Retained for phased migration and test coverage.
-/// Provides simple parsing loop over token stream to node conversion.
+// ------------------------------------------------
+// 🌀 ScrollParser — Legacy Non-Resolving Parser
+// ------------------------------------------------
+/// 🌀 Legacy parser implementation — retained for test scaffolding.
+/// Uses a token queue and does **not** perform operand resolution.
 pub struct ScrollParser {
     tokens: VecDeque<Token>,
-    // 🪙 Token queue for ordered consumption in legacy mode
+    // 🪙 Token queue (ordered consumption during basic parsing)
     scroll: Vec<ScrollNode>,
-    // 🧾 Accumulated scroll under construction (pre-tree finalization)
+    // 🧾 Accumulated result vector (pre-resolution AST)
 }
 
-/// 🎯 The primary parser implementation.
-/// Responsible for sentence interpretation, node construction, and scroll validation.
-/// Uses a flat token stream with explicit position tracking.
+// ------------------------------------------------
+// 🎯 Parser — Operand-Aware Sentence Parser
+// ------------------------------------------------
+/// 🎯 The primary parser structure.
+/// Parses a linear stream of tokens into `ScrollNode`s and prepares for operand resolution.
+/// Does not build operand structures directly, but enables schema-ready flow into the Bearer.
 pub struct Parser {
     tokens: Vec<Token>,
-    // 📜 Linear token list derived from the tokenizer
+    // 📜 Flat token stream (from tokenizer output)
     position: usize,
-    // 🔍 Current position within token stream (cursor for descent)
+    // 🔍 Cursor within token stream for ordered access
 }
 
 // ===============================================
@@ -154,6 +190,10 @@ pub struct Parser {
 // Responsible for preparing parser structures before interpretation begins.
 // These methods instantiate stateful containers for token walking, node construction,
 // and scroll preparation. No parsing logic occurs here—only structure creation.
+
+// ===============================================
+// === ScrollParser — Legacy Constructor ===
+// ===============================================
 
 impl ScrollParser {
     /// 🧱 Constructs a new instance of the legacy `ScrollParser`.
@@ -172,6 +212,10 @@ impl ScrollParser {
         self.scroll // 🚧 Acts as a stub method until logic migration is complete
     }
 }
+
+// ===============================================
+// === Parser — Primary Constructor ==
+// ===============================================
 
 impl Parser {
     /// 🎬 Constructs a new `Parser` from a linear token stream.
@@ -193,32 +237,42 @@ impl Parser {
 // for ergonomic propagation using `?`.
 //
 // Each error is a scroll breach, requiring insight or repentance.
+// ===============================================
+
+// ===============================================
+// === Error Type Enum ===
+// ===============================================
 
 /// 🧯 Enum representing categories of parser failure.
 /// Each variant defines a unique class of misalignment between scroll syntax and expected sentence logic.
 #[derive(Debug)]
 pub enum ParseErrorType {
-    UnexpectedEOF,
-    InvalidArgument(String),
-    UnexpectedToken,
-    MissingToken,
-    InvalidInstruction,
-    InvalidGrammar,
-    UnknownSymbol,
+    UnexpectedEOF,           // 📉 Ran out of tokens mid-expression or sentence
+    InvalidArgument(String), // ❌ Argument found but doesn't match expected type or structure
+    UnexpectedToken,         // 🌀 Found token was out of place grammatically
+    MissingToken,            // ⛔ Expected token (e.g., verb, assignment) was not found
+    InvalidInstruction,      // 📚 Instruction not found in registry
+    InvalidGrammar,          // 🪓 Sentence structure broke grammatical covenant
+    UnknownSymbol,           // 🕳 Reference used but not declared or defined
 }
 
+// ===============================================
+// === ParseError Struct ===
+// ===============================================
+
 /// 🩺 Represents a single error encountered while parsing a scroll.
-/// Contains type, readable message, and positional metadata.
+/// Contains type, readable message, and positional metadata for traceability.
 #[derive(Debug)]
 pub struct ParseError {
-    pub kind: ParseErrorType, // 🧭 Classification of the issue
-    pub message: String,      // 📝 Explanation of what went wrong
-    pub line: usize,          // 📍 Line number in the scroll
-    pub column: usize,        // 📏 Character offset in the line
+    pub kind: ParseErrorType, // 🧭 What kind of misalignment occurred
+    pub message: String,      // 📜 Human-readable explanation
+    pub line: usize,          // 📍 Where in the scroll the error emerged (line number)
+    pub column: usize,        // 📏 Specific character offset in the line
 }
 
 impl ParseError {
-    /// 🔧 Create a new parse error with full detail
+    /// 🔧 Create a new parse error with full detail.
+    /// Used when the parser has full visibility into the scroll position and context.
     pub fn new(
         kind: ParseErrorType,
         message: impl Into<String>,
@@ -226,37 +280,44 @@ impl ParseError {
         column: usize,
     ) -> Self {
         Self {
-            kind,
-            message: message.into(),
-            line,
-            column,
+            kind,                    // Error category
+            message: message.into(), // Description passed in as string or &str
+            line,                    // Line number captured during parsing
+            column,                  // Column position captured during parsing
         }
     }
 
-    /// 📃 Lightweight builder for structural errors without location
+    /// 📃 Lightweight builder for structural errors without location.
+    /// Used in early failure stages or when positional data is unavailable.
     pub fn basic(kind: ParseErrorType) -> Self {
         Self {
-            message: format!("Parser failed due to: {:?}", kind),
-            kind,
-            line: 0,
+            message: format!("Parser failed due to: {:?}", kind), // Default generic message
+            kind,    // Still provides error classification
+            line: 0, // Defaults to zero when unknown
             column: 0,
         }
     }
 }
 
-/// 💡 Enables use of `?` on `ParseErrorType` inside parser Result functions
+// ===============================================
+// === Trait Implementations ===
+// ===============================================
+
+/// 💡 Enables use of `?` on `ParseErrorType` inside parser Result functions.
+/// This makes error propagation elegant and idiomatic—scrolls abort cleanly on breach.
 impl From<ParseErrorType> for ParseError {
     fn from(kind: ParseErrorType) -> Self {
-        ParseError::basic(kind)
+        ParseError::basic(kind) // Delegates to the generic builder if only the type is known
     }
 }
 
-/// 🧾 Optional: Pretty formatter for logging or dev tools
+/// 🧾 Optional: Pretty formatter for logging, CLI display, or dev tools.
+/// Produces a clean trace for Watchtower or inline scroll diagnostics.
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "[Line {}, Col {}] {:?}: {}",
+            "[Line {}, Col {}] {:?}: {}", // Formatted trace style for debug panels
             self.line, self.column, self.kind, self.message
         )
     }
@@ -316,7 +377,7 @@ impl Parser {
     /// ❗ Any unknown or invalid token yields a `ScrollNode::Error`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_node(&mut self) -> Option<ScrollNode> {
-        let token = self.peek()?; // 👁 Preview current token without consuming it
+        let token = self.peek()?.clone(); // 👁 Preview current token without consuming it
 
         match token.token_type {
             TokenType::Instruction => self.parse_instruction(), // ⚙️ Scroll instruction
@@ -330,8 +391,13 @@ impl Parser {
 
             _ => {
                 // 🚨 Token does not match known sentence starters
-                self.advance(); // Avoid infinite loop on invalid token
-                Some(ScrollNode::Error("Unrecognized token".into())) // ❌ Sentence rejected
+                self.advance(); // ⏭ Skip token to avoid infinite loop
+
+                // ❌ Return error node with embedded token context for debugging
+                Some(ScrollNode::Error(format!(
+                    "Unrecognized token: {}",
+                    token.value
+                )))
             }
         }
     }
@@ -345,44 +411,74 @@ impl Parser {
     // Cursor utilities like `advance` and `peek` allow precise control
     // during recursive descent, enabling sentence-by-sentence discernment.
 
+    // -----------------------------------------------
+    // 🎯 Cursor Movement Utilities
+    // -----------------------------------------------
+    // These methods control how the parser walks the token stream.
+    // They do not interpret meaning—only manage position within the scroll.
+    //
+    // Think of them as the parser’s eyes and legs:
+    // • `advance()` moves forward one step and returns the token
+    // • `peek()` looks at the current token without stepping
+
     /// 📌 Advance the token stream — move cursor forward and consume token.
     ///
-    /// Retrieves and returns the token at the current position, then
-    /// advances the parser’s cursor. Returns `None` if end of stream is reached.
+    /// Retrieves and returns the token at the current position,
+    /// then increments the parser's position index by one.
+    ///
+    /// 🔁 Returns:
+    /// • `Some(Token)` if a token exists at the current index
+    /// • `None` if the end of the token stream has been reached
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn advance(&mut self) -> Option<Token> {
-        let tok = self.tokens.get(self.position).cloned(); // 🧤 Clone for safety — tokens are immutable
+        let tok = self.tokens.get(self.position).cloned(); // 🧤 Clone ensures original token remains intact
         if tok.is_some() {
-            self.position += 1; // ➡️ Shift parser focus forward
+            self.position += 1; // ➡️ Move parser cursor to next token
         }
-        tok
+        tok // 🎯 Return the consumed token (or None if at EOF)
     }
 
     /// 🔍 Peek at the current token without consuming it.
     ///
-    /// Returns a reference to the token at the parser’s current position.
-    /// This allows routing decisions without modifying cursor state.
+    /// Allows the parser to preview the next token to decide routing
+    /// without altering the current cursor position.
+    ///
+    /// 🔭 This is essential for grammar branching (e.g., assignment vs call)
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn peek(&mut self) -> Option<&Token> {
-        self.tokens.get(self.position) // 🔭 Look ahead for interpretation without movement
+        self.tokens.get(self.position) // 🧿 Non-consuming view of current token
     }
+
+    // -----------------------------------------------
+    // ⚙️ Instruction Parser
+    // -----------------------------------------------
+    // This walker interprets tokens that represent system instructions,
+    // turning them into `ScrollNode::Instruction` structures.
+    //
+    // Instructions act like mini-opcodes or method calls in NovaScript,
+    // usually followed by one or more argument tokens.
+    //
+    // 🧭 Example:
+    //   Input:    invoke "truth" +5
+    //   Output:   ScrollNode::Instruction { name: "invoke", args: ["truth", "+5"] }
 
     /// ⚙️ Instruction walker — parses an opcode-like token into `ScrollNode::Instruction`.
     ///
     /// - Consumes the instruction keyword (e.g., `invoke`)
-    /// - Collects all following tokens that qualify as arguments (identifiers, literals, operators)
-    /// - Stops parsing on invalid types, block openers, or newline boundaries
+    /// - Collects all following tokens that qualify as arguments
+    /// - Terminates when encountering invalid types or scroll delimiters
     ///
-    /// 🧭 Example Input:
-    /// - Token stream: `invoke "truth" +5`
-    /// - Output: `ScrollNode::Instruction { name: "invoke", args: ["truth", "+5"] }`
+    /// 🛠 Grammar Recognized:
+    /// - `invoke "truth"`
+    /// - `bless x +7`
     ///
-    /// 🔧 Debug mode (when enabled):
-    /// - Logs instruction parse event with name and argument count
+    /// 🔧 Debug mode (if enabled):
+    /// - Emits log of instruction name and number of args parsed
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_instruction(&mut self) -> Option<ScrollNode> {
-        let token = self.advance()?; // 🎯 Consume the instruction keyword
+        let token = self.advance()?; // 🎯 Step forward to consume the instruction keyword
 
+        // 🚨 Validate instruction name against registry before parsing args
         if self.decode_instruction(&token).is_none() {
             return Some(ScrollNode::Error(format!(
                 "Unknown instruction '{}'",
@@ -390,23 +486,23 @@ impl Parser {
             )));
         }
 
-        let mut args = Vec::new();
+        let mut args = Vec::new(); // 📦 Collector for parsed arguments
 
-        // 🔁 Gather tokens as arguments while valid
+        // 🔁 Walk forward through valid argument tokens
         while let Some(tok) = self.peek() {
             match tok.token_type {
                 TokenType::Literal | TokenType::Identifier | TokenType::Operator => {
-                    args.push(tok.value.clone()); // 🧾 Push token value into arg list
-                    self.advance(); // ➡️ Move to next token
+                    args.push(tok.value.clone()); // ✍️ Add to argument list
+                    self.advance(); // ➡️ Step forward
                 }
                 TokenType::Whitespace => {
-                    self.advance(); // 🧹 Skip spacers silently
+                    self.advance(); // 🧹 Ignore blank space
                 }
-                _ => break, // ⛔ Stop parsing args at invalid boundary
+                _ => break, // ⛔ Stop on block, newline, or invalid type
             }
         }
 
-        // 🧪 Debug logging — shows result and argument set
+        // 🧪 Optional debug trace (prints instruction structure)
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, DebugResponse, Severity};
@@ -420,33 +516,46 @@ impl Parser {
             .with_location("Parser::parse_instruction")
             .with_suggestion("Ensure argument types align with instruction schema.");
 
-            println!("{:#?}", entry); // 🪵 Emit structured debug entry
+            println!("{entry:#?}"); // 🪵 Emit structured debug report
         }
 
-        // 🧱 Construct final instruction node
+        // 🧱 Emit constructed instruction node
         Some(ScrollNode::Instruction {
             name: token.value,
             args,
         })
     }
 
+    // -----------------------------------------------
+    // 🔢 Literal Parser
+    // -----------------------------------------------
+    // This walker converts raw literal tokens into `ScrollNode::Literal`.
+    //
+    // Literals are **primitive values** in NovaScript: strings, numbers,
+    // booleans, symbols—any standalone data value not requiring interpretation.
+    //
+    // ❗ No transformation is performed here (e.g., no type inference or evaluation).
+    // That work is deferred to later stages (e.g., operand resolver or executor).
+    //
+    // 🧭 Example:
+    //   Input:    "Holy Fire"
+    //   Output:   ScrollNode::Literal("Holy Fire")
+
     /// ✍️ Parses a literal token into `ScrollNode::Literal`.
     ///
-    /// Captures basic primitives such as strings, numbers, booleans, and symbols.
-    /// Does not attempt type coercion or expression evaluation—this occurs later.
-    ///
-    /// 🧭 Example:
-    /// - Input: `"truth"` → Output: `ScrollNode::Literal("truth")`
+    /// Captures raw, untyped values for use in assignments, calls, or instructions.
     ///
     /// 🔧 Debug mode:
-    /// - Logs captured literal and confirms parse success
+    /// - Emits trace showing token value and node capture
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_literal(&mut self) -> Option<ScrollNode> {
-        let token = self.advance()?; // 📥 Retrieve and consume literal token
+        let token = self.advance()?; // 📥 Step forward and consume literal token
 
+        // 🧪 Optional: emit debug trace of literal interpretation
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, DebugResponse, Severity};
+
             let entry = DebugEntry::new(
                 "parse_literal",
                 &token.value,
@@ -454,35 +563,52 @@ impl Parser {
                 "Literal ScrollNode",
             )
             .with_location("Parser::parse_literal");
-            println!("{entry:#?}"); // 📊 Log successful interpretation
+
+            println!("{entry:#?}"); // 🪵 Emit debug info
         }
 
-        Some(ScrollNode::Literal(token.value)) // ✅ Return valid node
+        // 📦 Construct and return literal node directly
+        Some(ScrollNode::Literal(token.value))
     }
 
-    /// 🧭 Assignment/Call Branch Walker — Resolves ambiguity on identifiers.
+    // -----------------------------------------------
+    // 🧮 Assignment / Call Router
+    // -----------------------------------------------
+    // This walker discerns the purpose of an `Identifier` token.
+    //
+    // Based on the next token, it resolves whether the identifier begins:
+    // • An assignment (e.g., `faith = "substance"`)
+    // • A function or instruction call (e.g., `proclaim("truth")`)
+    //
+    // 🧠 Ambiguity handling:
+    // If the next token is neither `=` nor `(`, this walker emits a ScrollNode::Error.
+    //
+    // 🧭 Grammar Routes:
+    // • Identifier + `=` → Assignment
+    // • Identifier + `(` → Call
+    // • Identifier + ❓ → Error (Unclear purpose)
+
+    /// 🧭 Assignment/Call Branch Walker — resolves identifier intent.
     ///
-    /// Determines whether the identifier begins:
-    /// - An assignment (e.g., `path = "truth"`)
-    /// - A function or command call (e.g., `proclaim("glory")`)
-    ///
-    /// Walks one token ahead to route behavior.
-    ///
-    /// 🧠 Fallback behavior:
-    /// - If next token is not `=` or `(`, logs `Error` node
+    /// Parses grammar pattern following an identifier:
+    /// - `=` signals assignment
+    /// - `(` signals function or opcode call
     ///
     /// 🔧 Debug mode:
-    /// - Logs identifier, expected branching pattern, and actual next token
+    /// - Logs expected pattern and actual token encountered
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_assignment_or_call(&mut self) -> Option<ScrollNode> {
-        let identifier = self.advance()?; // 🔑 Consume variable or function name
-        let next = self.peek()?; // 👁️ Inspect next token to resolve grammar type
+        let identifier = self.advance()?; // 🔑 Consume the symbol name (variable or callable)
+        let next = self.peek()?; // 👁️ Peek at the next token to determine intent
 
+        // 🧪 Emit trace for branching decision
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, DebugResponse, Severity};
+
             let expected = "`=` or `(`";
             let actual = next.value.clone();
+
             let entry = DebugEntry::new(
                 "parse_assignment_or_call",
                 &identifier.value,
@@ -491,46 +617,54 @@ impl Parser {
             )
             .with_location("Parser::parse_assignment_or_call")
             .with_suggestion("Check next token to distinguish assignment or call.");
-            println!("{entry:#?}");
+
+            println!("{entry:#?}"); // 🪵 Log the branching context
         }
 
         match next.value.as_str() {
+            // 🧾 Assignment pattern: identifier = value
             "=" => {
-                self.advance(); // 🪜 Skip `=`
-                let value_token = self.advance()?; // 📥 Capture right-hand side
+                self.advance(); // ➡️ Skip the '=' token
+                let value_token = self.advance()?; // 📥 Capture right-hand side value
+
                 Some(ScrollNode::Assignment {
-                    target: identifier.value,
-                    value: value_token.value,
+                    target: identifier.value, // 🧱 Variable name
+                    value: value_token.value, // 🔢 Bound value
                 })
             }
-            "(" => {
-                self.parse_call(identifier.value.clone()) // 📞 Hand off to function call walker
-            }
-            _ => {
-                // ❗ Unexpected pattern — raise error node for ambiguity
-                Some(ScrollNode::Error(format!(
-                    "Ambiguous identifier usage near '{}'",
-                    identifier.value
-                )))
-            }
+
+            // 📞 Invocation pattern: identifier(...)
+            "(" => self.parse_call(identifier.value.clone()),
+
+            // ❌ Invalid pattern — identifier used ambiguously
+            _ => Some(ScrollNode::Error(format!(
+                "Ambiguous identifier usage near '{}'",
+                identifier.value
+            ))),
         }
     }
 
+    // -----------------------------------------------
+    // 🧾 Metadata & Comment Parsers
+    // -----------------------------------------------
+    // These walkers capture non-executing elements in the scroll:
+    //
+    // • `parse_metadata` gathers system-aligned framing tokens like
+    //   `//`, `##!`, `///`, etc., which shape execution context.
+    //
+    // • `parse_comment` captures human-facing remarks embedded in
+    //   the scroll to preserve voice, intent, or spiritual witness.
+    //
+    // Neither produces runnable code, but both are vital for
+    // traceability, alignment, and interpretive clarity.
+
     /// 📘 Metadata Interpreter — parses scroll-level directives.
     ///
-    /// Captures special comments used to describe the scroll’s purpose,
-    /// subsystem context, or execution framing.
-    ///
-    /// Recognizes lines starting with:
-    /// - `//`, `##!`, `///`, etc.
-    ///
-    /// These lines are **not executed**, but hold **contextual authority** for scroll alignment.
+    /// These lines begin with `//`, `##!`, `///`, etc., and frame
+    /// the scroll’s purpose, ownership, or subsystem scope.
     ///
     /// 🧭 Example:
-    /// - `// this scroll governs the NovaGate` → `ScrollNode::Metadata(...)`
-    ///
-    /// 🔧 Debug mode:
-    /// - Logs captured metadata and its parsing context
+    /// - `// governs the Gate subsystem` → `ScrollNode::Metadata(...)`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_metadata(&mut self) -> Option<ScrollNode> {
         let token = self.advance()?; // 🧾 Consume metadata token from token stream
@@ -538,6 +672,7 @@ impl Parser {
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, DebugResponse, Severity};
+
             let entry = DebugEntry::new(
                 "parse_metadata",
                 &token.value,
@@ -545,30 +680,29 @@ impl Parser {
                 "Metadata ScrollNode",
             )
             .with_location("Parser::parse_metadata");
-            println!("{entry:#?}"); // 🪵 Log metadata parsing
+
+            println!("{entry:#?}"); // 🪵 Emit debug log for metadata
         }
 
-        Some(ScrollNode::Metadata(token.value)) // 🧱 Emit metadata node
+        Some(ScrollNode::Metadata(token.value)) // 🧱 Return node containing directive content
     }
 
     /// 💬 Comment Interpreter — parses human-facing notes.
     ///
-    /// Captures developer commentary or spiritual reminders
-    /// embedded within the scroll. These are **never executed**
-    /// but are preserved to maintain voice, clarity, and design memory.
+    /// These lines are developer-facing insights, poetic markers,
+    /// or reminders for future walkers. They are **preserved**, not
+    /// executed, and help hold posture within the scroll.
     ///
     /// 🧭 Example:
-    /// - `# This section controls the gate logic` → `ScrollNode::Comment(...)`
-    ///
-    /// 🔧 Debug mode:
-    /// - Logs parsing of comment token and associated content
+    /// - `# This section guards NovaGate` → `ScrollNode::Comment(...)`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_comment(&mut self) -> Option<ScrollNode> {
-        let token = self.advance()?; // ✏️ Pull comment token from token stream
+        let token = self.advance()?; // ✏️ Consume comment token from stream
 
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, DebugResponse, Severity};
+
             let entry = DebugEntry::new(
                 "parse_comment",
                 &token.value,
@@ -576,43 +710,53 @@ impl Parser {
                 "Comment ScrollNode",
             )
             .with_location("Parser::parse_comment");
-            println!("{entry:#?}"); // 🗒️ Print comment for audit
+
+            println!("{entry:#?}"); // 📜 Log for dev traceability
         }
 
-        Some(ScrollNode::Comment(token.value)) // 🧱 Emit comment node
+        Some(ScrollNode::Comment(token.value)) // 🧱 Return node preserving the voice
     }
 
     // ===============================================
     // 🧭 Grammar Walkers — Expression & Structure Parsers
     // ===============================================
+    // These walkers operate at the **sub-sentence level**, enabling
+    // NovaScript to handle inline conditionals, argument groupings,
+    // type annotations, and full sentence declarations (SVO).
+    //
+    // Each function isolates a grammatical substructure that contributes
+    // to sentence execution, enabling nested parsing without losing clarity.
+
+    // -----------------------------------------------
+    // 🔍 Condition Extractor
+    // -----------------------------------------------
 
     /// 🧠 Condition Extractor — builds conditional expressions.
     ///
     /// Walks forward through the token stream to extract conditions
     /// used in `if`, `when`, `while`, and similar constructs.
     ///
-    /// The walk stops when:
-    /// - A block delimiter `{` is found
-    /// - A statement terminator `;` is encountered
+    /// Halts on grammar boundaries like:
+    /// • `{` — block open
+    /// • `;` — statement end
     ///
     /// 🧭 Example:
-    /// `if x > 5 {` → will extract `x > 5`
-    ///
-    /// 🔧 Debug mode:
-    /// - Logs the full condition string and hints at structural expectation
+    /// `if x > 5 {` → yields `"x > 5"`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn walk_condition(&mut self) -> Option<String> {
-        let mut condition = String::new(); // 🧱 Accumulator for token values
+        let mut condition = String::new(); // 🧱 Initialize string accumulator
 
         while let Some(token) = self.peek() {
             match token.value.as_str() {
-                "{" | ";" => break, // 🧱 Stop at structure break
+                "{" | ";" => break, // 🧱 End condition walk at structure boundary
                 _ => {
-                    let t = self.advance()?; // 🎯 Consume valid token
+                    let t = self.advance()?; // 🎯 Consume and validate token
+
                     if !condition.is_empty() {
-                        condition.push(' '); // 🔗 Preserve token separation
+                        condition.push(' '); // 🔗 Maintain word spacing
                     }
-                    condition.push_str(&t.value); // 📎 Append token to condition
+
+                    condition.push_str(&t.value); // 📎 Append raw token to condition string
                 }
             }
         }
@@ -620,6 +764,7 @@ impl Parser {
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, Severity};
+
             let entry = DebugEntry::new(
                 "walk_condition",
                 &condition,
@@ -628,78 +773,96 @@ impl Parser {
             )
             .with_location("Parser::walk_condition")
             .with_suggestion("Ensure block follows valid grammar");
-            println!("{entry:#?}"); // 🪵 Emit trace log
+
+            println!("{entry:#?}"); // 🪵 Emit trace log for visual feedback
         }
 
         if condition.is_empty() {
-            None // 🚫 No usable condition
+            None // 🚫 No meaningful condition parsed
         } else {
-            Some(condition) // ✅ Return extracted expression
+            Some(condition) // ✅ Return the extracted condition string
         }
     }
 
+    // -----------------------------------------------
+    // 🧬 Type Annotation Extractor
+    // -----------------------------------------------
+
     /// 🧾 Type Annotation Parser — extracts inline type hints.
     ///
-    /// Recognizes optional type signatures in variable declarations.
-    /// Walks the pattern: `:` → `TypeName`
+    /// Looks for a type signature immediately after a variable name.
+    /// Pattern: `:` → `TypeName`
     ///
     /// 🧭 Example:
     /// `let x: Int` → extracts `"Int"`
     ///
-    /// Returns `None` if `:` is not present.
-    ///
-    /// 🔧 Currently does not validate type name itself—reserved for type checker layer.
+    /// 🔍 This does **not** validate type correctness — that’s the job of the type checker.
+    /// Returns `None` if no `:` is found or if type name is missing.
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn walk_type_annotation(&mut self) -> Option<String> {
-        let colon = self.peek()?; // 👁️ Look ahead for type indicator
+        let colon = self.peek()?; // 👁️ Peek ahead — expect `:` for type hint
         if colon.value != ":" {
             return None; // 🚫 No type hint present
         }
 
         self.advance()?; // ✅ Consume `:`
-        let next = self.advance()?; // 🔤 Get type name token
 
-        Some(next.value.clone()) // 📦 Return extracted type name
+        // 🆕 Check for missing type name after `:` to prevent silent failure
+        let next = self.peek()?;
+        if next.token_type != TokenType::Identifier {
+            return None; // ❗ Invalid type hint — expected identifier
+        }
+
+        let type_token = self.advance()?; // 🔤 Capture type name
+        Some(type_token.value.clone()) // 📦 Return raw type string
     }
+
+    // -----------------------------------------------
+    // 📦 Argument Group Parser
+    // -----------------------------------------------
 
     /// 🪶 Parses a comma-separated argument list enclosed in `(...)`.
     ///
-    /// Used in function and instruction calls such as:
-    /// `invoke(reveal, glory)` → args = ["reveal", "glory"]
+    /// Used in function or instruction calls such as:
+    /// `invoke(reveal, glory)` → returns `["reveal", "glory"]`
     ///
-    /// Returns:
-    /// - `Vec<String>` of raw argument tokens
-    /// - Will return empty if no `(` is detected
+    /// 🛠️ Behavior:
+    /// - Begins only if opening `(` is detected
+    /// - Accepts raw tokens: literals, identifiers, operators, etc.
+    /// - Skips over commas cleanly
+    /// - Terminates on closing `)`
     ///
-    /// 🧭 Walk Logic:
-    /// - Starts after seeing `(`
-    /// - Accepts identifiers, literals, and raw tokens
-    /// - Skips commas, stops at `)`
+    /// 🧭 Returns:
+    /// - A `Result<Vec<String>, ParseError>`
+    /// - Will return an empty vector if `(` is not found
+    ///
+    /// ❗ This parser does not perform operand resolution—
+    /// it only collects argument **tokens** for later evaluation.
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_argument_list(&mut self) -> Result<Vec<String>, ParseError> {
         let mut args = vec![];
 
-        // 🔍 Ensure argument block starts with `(`
+        // 🔍 Verify that an argument group is starting with `(`
         let peeked = self.peek().ok_or(ParseErrorType::UnexpectedEOF)?;
         if peeked.value != "(" {
-            return Ok(args); // ✅ match return type
+            return Ok(args); // 🫱 No argument list — return empty, not an error
         }
-        self.advance(); // ✅ Consume opening parenthesis
+        self.advance(); // ✅ Consume the opening parenthesis
 
+        // 🔁 Continue gathering until closing `)`
         while let Some(token) = self.peek() {
             match token.value.as_str() {
                 ")" => {
-                    self.advance(); // ✅ End of arguments
+                    self.advance(); // ✅ End of group — consume `)` and stop
                     break;
                 }
                 "," => {
-                    self.advance(); // 🧹 Clean comma
+                    self.advance(); // 🧹 Skip over delimiter
                     continue;
                 }
                 _ => {
-                    let arg_token = self.advance().ok_or(ParseErrorType::UnexpectedEOF)?;
-                    // 🎯 Grab argument
-                    args.push(arg_token.value.clone()); // 📦 Store argument
+                    let arg_token = self.advance().ok_or(ParseErrorType::UnexpectedEOF)?; // 🎯 Grab next argument
+                    args.push(arg_token.value.clone()); // 📦 Store raw token
                 }
             }
         }
@@ -716,33 +879,44 @@ impl Parser {
             )
             .with_location("Parser::parse_argument_list")
             .with_suggestion("Validate argument arity if required");
-            println!("{entry:#?}"); // 🪵 Emit log
+            println!("{entry:#?}"); // 🪵 Emit debug trace
         }
 
         Ok(args)
     }
 
+    // -----------------------------------------------
+    // 📜 SVO Sentence Walker
+    // -----------------------------------------------
+
     /// 📜 Parses a Scroll Sentence in Subject-Verb-Object form.
     ///
-    /// Pattern:
-    /// - `subject verb object` → becomes `ScrollNode::ScrollSentence`
+    /// This is a lightweight natural-language interpreter for structured scrolls.
+    /// Designed to walk declarations like:
     ///
-    /// Assumes three consecutive tokens with clear semantic weight.
-    /// Example:
-    /// - `The priest speaks truth` → subject = "The priest", verb = "speaks", object = "truth"
+    /// 🧾 Examples:
+    /// - `"The priest speaks truth"`
+    /// - `"scroll invokes clarity"`
     ///
-    /// 🔎 Does not currently validate grammar or perform plural/singular agreement checks.
-    /// Suitable for embedded natural language execution or proto-schema walking.
+    /// 🧠 Behavior:
+    /// • Assumes 3 consecutive tokens = subject, verb, object
+    /// • Captures only raw strings — no operand resolution
+    /// • Used for declarations, prophetic patterns, or natural scroll grammars
+    ///
+    /// 🛑 Limitations:
+    /// • No grammar validation (e.g., missing or extra tokens)
+    /// • No type-checking or verb-object agreement (for now)
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_scroll_sentence(&mut self) -> Option<ScrollNode> {
-        let subject = self.advance()?.value; // 🙋 Who is acting
-        let verb = self.advance()?.value; // 🗣️ What they do
-        let object = self.advance()?.value; // 🎯 What is acted upon
+        let subject = self.advance()?.value; // 🙋 Subject — who is acting
+        let verb = self.advance()?.value; // 🗣️ Verb — what they do
+        let object = self.advance()?.value; // 🎯 Object — what is acted upon
 
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, Severity};
-            let phrase = format!("{subject} {verb} {object}");
+
+            let phrase = format!("{subject} {verb} {object}"); // 📖 Full sentence preview
             let entry = DebugEntry::new(
                 "parse_scroll_sentence",
                 &phrase,
@@ -751,19 +925,24 @@ impl Parser {
             )
             .with_location("Parser::parse_scroll_sentence")
             .with_suggestion("Validate grammar structure with schema");
-            println!("{entry:#?}");
+
+            println!("{entry:#?}"); // 🪵 Debug trace output
         }
 
         Some(ScrollNode::ScrollSentence {
             subject,
             verb,
             object,
-        })
+        }) // ✅ Output raw SVO node
     }
 
     /// ===============================================
-    /// 🧩 Optional & Advanced Node Handlers (Wired Stubs)
+    /// 📘 Extended Scroll Parsers — Declarations & Blocks
     /// ===============================================
+
+    // -------------------------------
+    // 📝 Variable Declaration Parser
+    // -------------------------------
 
     /// 📐 Parses a typed variable declaration into a `ScrollNode::Declaration`.
     ///
@@ -779,10 +958,9 @@ impl Parser {
     /// - `ScrollNode::Declaration { name, dtype }`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_declaration(&mut self) -> Option<ScrollNode> {
-        let _keyword = self.advance()?; // Expect `let`
-        let name_token = self.advance()?; // Capture variable name
-
-        let dtype = self.walk_type_annotation(); // Parse optional `: Type`
+        let _keyword = self.advance()?; // 🔑 Expect `let`
+        let name_token = self.advance()?; // 🧾 Capture variable name
+        let dtype = self.walk_type_annotation(); // 🧬 Optional type suffix (e.g., `: Int`)
 
         #[cfg(feature = "debug_mode")]
         {
@@ -810,11 +988,16 @@ impl Parser {
         })
     }
 
+    // -------------------------------
+    // 🧠 Conditional Parser
+    // -------------------------------
+
     /// 🔀 Parses a conditional block like `if condition { ... }`
     ///
-    /// Handles:
-    /// - Condition expressions (`walk_condition`)
-    /// - Body blocks (`parse_block`)
+    /// Structure:
+    /// - Consumes conditional keyword (`if`, etc.)
+    /// - Extracts condition expression (to be operand-resolved later)
+    /// - Parses body block enclosed in `{ ... }`
     ///
     /// Example:
     /// ```plaintext
@@ -827,9 +1010,9 @@ impl Parser {
     /// - `ScrollNode::Conditional { condition, body }`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_conditional(&mut self) -> Option<ScrollNode> {
-        let _keyword = self.advance()?; // Expect `if` or similar keyword
-        let condition = self.walk_condition()?; // Parse inline expression
-        let body = self.parse_block(); // Parse following block as body
+        let _keyword = self.advance()?; // 🧭 Expect conditional keyword
+        let condition = self.walk_condition()?; // 🧠 Extract raw condition string (for later operand resolution)
+        let body = self.parse_block()?; // 📦 Parse block under condition
 
         #[cfg(feature = "debug_mode")]
         {
@@ -847,19 +1030,23 @@ impl Parser {
 
         Some(ScrollNode::Conditional {
             condition,
-            body: vec![body.unwrap()],
+            body: vec![body], // 🔗 Emit conditional with 1-block body
         })
     }
 
+    // -------------------------------
+    // 🔁 Loop Construct Parser
+    // -------------------------------
+
     /// 🔁 Parses a loop construct into `ScrollNode::Loop`.
     ///
-    /// Supported Pattern:
+    /// Supports:
     /// - `while <condition> { ... }`
     ///
-    /// Logic:
-    /// - Consumes the loop keyword (`while`, `for`, etc.)
-    /// - Extracts condition expression using `walk_condition()`
-    /// - Parses body block via `parse_block()`
+    /// Flow:
+    /// - Consumes loop keyword (`while`, etc.)
+    /// - Extracts condition expression string (to be operand-resolved later)
+    /// - Parses inner block sequence
     ///
     /// Example:
     /// ```plaintext
@@ -872,9 +1059,9 @@ impl Parser {
     /// - `ScrollNode::Loop { condition, body }`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_loop(&mut self) -> Option<ScrollNode> {
-        let _keyword = self.advance()?; // Expect `while`, `for`, etc.
-        let condition = self.walk_condition()?; // Extract loop condition
-        let body = self.parse_block(); // Extract associated loop body
+        let _keyword = self.advance()?; // 🧭 Expect loop keyword
+        let condition = self.walk_condition()?; // 🧠 Capture loop condition string (raw)
+        let body = self.parse_block()?; // 📦 Parse the loop body block
 
         #[cfg(feature = "debug_mode")]
         {
@@ -892,46 +1079,51 @@ impl Parser {
 
         Some(ScrollNode::Loop {
             condition,
-            body: vec![body.unwrap()],
+            body: vec![body],
         })
     }
+
+    // -------------------------------
+    // 📦 Instruction Group Parser (Bracket Form)
+    // -------------------------------
 
     /// 🔗 Parses a bracketed sequence of instructions into `ScrollNode::Block`.
     ///
     /// Pattern:
     /// - `[ instr1, instr2, instr3 ]`
     ///
-    /// This allows inline grouping of multiple nodes without block indentation.
-    /// Useful for array-style sequences or scroll-style command chains.
+    /// Use Case:
+    /// - Enables inline scroll-style command chains
+    /// - Treats grouped nodes as a list of operands or sequence
     ///
-    /// Logic:
-    /// - Consumes opening bracket `[`, then reads nested instructions
-    /// - Dispatches each inner token via `parse_node()`
-    /// - Stops at closing bracket `]`
+    /// Flow:
+    /// - Expects opening `[`
+    /// - Delegates parsing to `parse_node()` until `]`
+    /// - Collects results into a single `ScrollNode::Block`
     ///
     /// Example:
     /// ```plaintext
     /// [ walk("north"), invoke("bless"), proclaim("victory") ]
     /// ```
     ///
-    /// Returns:
-    /// - `ScrollNode::Block(Vec<ScrollNode>)`
+    /// Operand Note:
+    /// - Each child node may contain operand expressions that must be resolved later
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_instruction_group(&mut self) -> Option<ScrollNode> {
-        let _open = self.advance()?; // Consume `[` token
+        let _open = self.advance()?; // 🔓 Consume `[`
         let mut group_nodes = vec![];
 
         while let Some(token) = self.peek() {
             if token.value == "]" {
-                self.advance(); // Consume closing `]`
+                self.advance(); // ✅ Consume closing `]`
                 break;
             }
 
-            // Delegate node parsing for each group element
+            // ✨ Recursively parse nested instructions
             if let Some(node) = self.parse_node() {
                 group_nodes.push(node);
             } else {
-                break;
+                break; // 🚧 Stop on invalid node
             }
         }
 
@@ -952,29 +1144,37 @@ impl Parser {
         Some(ScrollNode::Block(group_nodes))
     }
 
+    // -------------------------------
+    // 📥 Import Statement Parser
+    // -------------------------------
+
     /// 📦 Parses a scroll import statement into `ScrollNode::Import`.
     ///
     /// Pattern:
     /// - `import "path/to/scroll.omni"`
     ///
-    /// This currently supports **literal string imports only**—meaning the path must be
-    /// wrapped in quotes and appear directly after the `import` keyword.
-    ///
     /// Logic:
-    /// - Consumes `import` token
-    /// - Expects next token to be a valid string literal
+    /// - Consumes `import` keyword
+    /// - Expects a valid string literal token as the file path
     ///
     /// Example:
     /// ```plaintext
     /// import "modules/divine_scroll.omni"
     /// ```
     ///
-    /// Returns:
-    /// - `ScrollNode::Import(path_string)`
+    /// ⚠️ Only supports **literal** string imports (no dynamic expressions).
+    /// Emits a `ScrollNode::Import` if successful.
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_import(&mut self) -> Option<ScrollNode> {
         let _keyword = self.advance()?; // 📥 Consume `import`
-        let path_token = self.advance()?; // 📦 Expect string literal path (e.g. `"scroll.omni"`)
+        let path_token = self.advance()?; // 📦 Expect string literal path
+
+        // ⚠️ Validate that the token is a properly quoted string
+        if !path_token.value.starts_with('"') || !path_token.value.ends_with('"') {
+            return Some(ScrollNode::Error(
+                "Import path must be a quoted string literal.".into(),
+            ));
+        }
 
         #[cfg(feature = "debug_mode")]
         {
@@ -993,75 +1193,62 @@ impl Parser {
         Some(ScrollNode::Import(path_token.value)) // 🔗 Emit import node
     }
 
+    // -------------------------------
+    // 🔚 Return Statement Parser
+    // -------------------------------
+
     /// 🔚 Parses a return statement into `ScrollNode::Return`.
+    ///
+    /// 🚧 Currently supports single resolved operand only.
+    /// Full expression and block return support planned.
     ///
     /// Pattern:
     /// - `return value`
     ///
-    /// This function currently supports **single-token return values**,
-    /// such as a literal, variable, or simple identifier.
-    ///
-    /// Logic:
-    /// - Consumes `return` keyword
-    /// - Extracts one following token (if any) as the return payload
-    ///
-    /// Example:
-    /// ```plaintext
-    /// return "peace"
-    /// return result
-    /// ```
-    ///
-    /// Returns:
-    /// - `ScrollNode::Return(value_string)`
+    /// Emits:
+    /// - `ScrollNode::Return(Operand)`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_return(&mut self) -> Option<ScrollNode> {
         let _keyword = self.advance()?; // ⏎ Consume `return`
-        let value_token = self.advance()?; // 🔍 Extract following literal or identifier
-        let value = value_token.value;
+
+        let operand = self.walk_operand()?; // 🧠 Resolve value into Operand
 
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, Severity};
             let entry = DebugEntry::new(
                 "parse_return",
-                &value,
+                &format!("{operand:?}"),
                 "return <value>",
-                "Captured return statement",
+                "Captured return statement (resolved)",
             )
             .with_location("Parser::parse_return")
-            .with_suggestion("Support expressions as future return values");
+            .with_suggestion("Support expression trees and multi-token operands in future");
             println!("{entry:#?}");
         }
 
-        Some(ScrollNode::Return(value)) // 📤 Emit return node
+        Some(ScrollNode::Return(operand)) // 📤 Emit full return node
     }
+
+    // -------------------------------
+    // 📞 Function Call Parser
+    // -------------------------------
 
     /// 🔮 Parses a function call into `ScrollNode::Call`.
     ///
     /// Pattern:
     /// - `function(arg1, arg2, ...)`
     ///
-    /// This is only invoked when the `parse_assignment_or_call` detects a `(`
-    /// following an identifier. It parses **comma-separated** arguments and
-    /// emits a callable node structure.
-    ///
-    /// 🧾 Example:
-    /// ```plaintext
-    /// bless("family", "peace")
-    /// ```
-    ///
     /// Logic Flow:
-    /// - Consume identifier (function name)
-    /// - Verify and consume `(`
-    /// - Walk argument list until `)`
-    /// - Return as `ScrollNode::Call`
+    /// - Consumes function name and `(`
+    /// - Resolves each argument using `walk_operand()`
+    /// - Emits `ScrollNode::Call`
     ///
     /// Notes:
-    /// - Currently supports **flat** arguments only (no nested expressions)
-    /// - Commas are treated as separators, not syntax
+    /// - Supports flat arguments only (for now)
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_call(&mut self, function_token: String) -> Option<ScrollNode> {
-        let open_paren = self.advance()?; // 🔓 Expect `(`
+        let open_paren = self.advance()?; // 🔓 Expect '('
 
         if open_paren.value != "(" {
             return Some(ScrollNode::Error(
@@ -1071,22 +1258,23 @@ impl Parser {
 
         let mut args = vec![];
 
-        // 🔁 Walk tokens until closing paren or stream end
         while let Some(token) = self.peek() {
             if token.value == ")" {
                 self.advance(); // ✅ Close the argument list
                 break;
             }
 
-            let arg_token = self.advance()?; // ➕ Extract argument
-            if arg_token.token_type != TokenType::Punctuation {
-                args.push(arg_token.value);
+            if let Some(arg) = self.walk_operand() {
+                args.push(arg); // 🎯 Resolve argument via operand logic
+            } else {
+                return Some(ScrollNode::Error(
+                    "Invalid argument in function call.".into(),
+                ));
             }
 
-            // Skip over commas
-            if let Some(t) = self.peek() {
-                if t.value == "," {
-                    self.advance();
+            if let Some(next) = self.peek() {
+                if next.value == "," {
+                    self.advance(); // Skip comma separator
                 }
             }
         }
@@ -1096,7 +1284,7 @@ impl Parser {
             use crate::debugger::{DebugEntry, Severity};
             let entry = DebugEntry::new(
                 "parse_call",
-                &function_token.value,
+                &function_token,
                 "call(function, args...)",
                 &format!("{} args parsed", args.len()),
             )
@@ -1111,28 +1299,21 @@ impl Parser {
         })
     }
 
+    // -------------------------------
+    // 🧾 Assignment Parser
+    // -------------------------------
+
     /// 🧷 Parses a variable assignment into `ScrollNode::Assignment`.
     ///
     /// Pattern:
-    /// - `target = value`
+    /// - `name = value`
     ///
-    /// This function is **usually called directly** from external paths
-    /// that already resolved the target, allowing partial injection.
-    ///
-    /// 🧾 Example:
-    /// ```plaintext
-    /// truth = "eternal"
-    /// ```
-    ///
-    /// Logic:
-    /// - Confirms presence of `=`
-    /// - Captures next token as right-hand side value
+    /// Logic Flow:
+    /// - Confirms presence of `=` after identifier
+    /// - Resolves right-hand side using `walk_operand()`
     ///
     /// Returns:
     /// - `ScrollNode::Assignment { target, value }`
-    ///
-    /// Error Handling:
-    /// - Emits `Error` node if `=` is missing
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_assignment(&mut self, target: String) -> Option<ScrollNode> {
         let next = self.advance()?; // 🔍 Expect '='
@@ -1144,39 +1325,49 @@ impl Parser {
             )));
         }
 
-        let value_token = self.advance()?; // 🧾 Right-hand value
+        let value = self.walk_operand()?; // 🎯 Parse right-hand side as operand
 
-        Some(ScrollNode::Assignment {
-            target,
-            value: value_token.value,
-        })
+        #[cfg(feature = "debug_mode")]
+        {
+            use crate::debugger::{DebugEntry, Severity};
+            let display = format!("{target} = {value}");
+            let entry = DebugEntry::new(
+                "parse_assignment",
+                &display,
+                "name = value",
+                "Parsed assignment pair",
+            )
+            .with_location("Parser::parse_assignment")
+            .with_suggestion("Ensure variable exists and value is valid expression");
+            println!("{entry:#?}");
+        }
+
+        Some(ScrollNode::Assignment { target, value })
     }
+
+    // -------------------------------
+    // 🧱 Logic Block Parser
+    // -------------------------------
 
     /// 🧱 Parses a grouped logic block delimited by `{ ... }`.
     ///
-    /// Used in compound constructs like functions, conditionals, loops,
-    /// and any nested scroll sequences.
-    ///
     /// Pattern:
-    /// ```plaintext
-    /// {
-    ///     instruction "value"
-    ///     let x = 5
-    /// }
-    /// ```
+    /// - `{ instruction_1; instruction_2; ... }`
     ///
-    /// Flow:
-    /// - Expects `{` to begin
-    /// - Repeatedly calls `parse_node()` until it finds `}`
-    /// - Emits `ScrollNode::Block` with collected inner nodes
+    /// Logic Flow:
+    /// - Confirms opening `{`
+    /// - Repeatedly calls `parse_node()` until `}`
+    /// - Collects all valid inner nodes
     ///
     /// Notes:
-    /// - Gracefully halts if malformed or EOF encountered mid-block
-    /// - Debug trail logs node count for auditing
+    /// - Gracefully halts if malformed or EOF is encountered mid-block
+    /// - Used for conditional bodies, loops, and nested scroll logic
+    ///
+    /// Returns:
+    /// - `ScrollNode::Block(Vec<ScrollNode>)`
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn parse_block(&mut self) -> Option<ScrollNode> {
-        // 🧩 Expecting opening `{` group marker
-        let open = self.advance()?;
+        let open = self.advance()?; // 🧩 Expect opening `{`
         if open.value != "{" {
             return Some(ScrollNode::Error(format!(
                 "Expected '{{' to open block, found '{}'",
@@ -1186,17 +1377,17 @@ impl Parser {
 
         let mut nodes = vec![];
 
-        // 🌀 Loop until closing `}` or stream ends
+        // 🌀 Walk through each inner node until `}` is found
         while let Some(token) = self.peek() {
             if token.token_type == TokenType::GroupMarker && token.value == "}" {
-                self.advance(); // ✅ Close the group
+                self.advance(); // ✅ Close the block
                 break;
             }
 
             if let Some(node) = self.parse_node() {
-                nodes.push(node); // 🧱 Add parsed child node
+                nodes.push(node); // 🧱 Push parsed scroll node
             } else {
-                break; // 🚨 Stop on failure to parse
+                break; // 🚨 Exit on invalid node
             }
         }
 
@@ -1210,7 +1401,7 @@ impl Parser {
                 &format!("Parsed block with {} nodes", nodes.len()),
             )
             .with_location("Parser::parse_block")
-            .with_suggestion("Ensure matching `{}` and valid inner structure");
+            .with_suggestion("Ensure matching braces and valid scroll logic inside block");
             println!("{entry:#?}");
         }
 
@@ -1220,6 +1411,10 @@ impl Parser {
     // ===============================================
     // 🔐 Instruction Decoding & Grammar Checking
     // ===============================================
+
+    // -------------------------------
+    // 🧠 Instruction Decoder
+    // -------------------------------
 
     /// 🧩 Attempts to decode a raw instruction token using the instruction registry.
     ///
@@ -1239,52 +1434,44 @@ impl Parser {
     /// - Suggests registry check or update if unrecognized
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn decode_instruction(&self, token: &Token) -> Option<String> {
-        use super::instruction_registry::get_instruction_registry; // 🧠 Registry of known instruction names
+        use super::instruction_registry::get_instruction_registry;
 
-        let instruction = token.value.clone(); // Already a String 🧽 Normalize for consistent lookup
+        let instruction = token.value.clone(); // 🧽 Normalize for consistent lookup
 
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, Severity};
             let found = InstructionRegistry::contains(&instruction);
-            let expected = "Known instruction";
-            let actual = if found {
-                instruction.clone()
-            } else {
-                "Unknown".into()
-            };
-
-            let entry = DebugEntry::new("decode_instruction", &instruction, expected, &actual)
-                .with_location("Parser::decode_instruction")
-                .with_suggestion("Verify token is a valid instruction or update registry");
+            let entry = DebugEntry::new(
+                "decode_instruction",
+                &instruction,
+                "Known instruction",
+                if found { &instruction } else { "Unknown" },
+            )
+            .with_location("Parser::decode_instruction")
+            .with_suggestion("Verify token is a valid instruction or update registry");
             println!("{entry:#?}");
         }
 
-        if get_instruction_registry().contains_key(instruction.as_str()) {
-            Some(instruction)
-        } else {
-            None
-        }
+        get_instruction_registry()
+            .contains_key(instruction.as_str())
+            .then_some(instruction)
     }
 
-    /// 🧪 Validates if a scroll sentence aligns with grammar expectations.
+    // -------------------------------
+    // 🧪 Scroll Sentence Grammar Validator
+    // -------------------------------
+
+    /// 🧪 Validates if a scroll sentence aligns with basic grammar expectations.
     ///
-    /// This is a basic structure validator for subject–verb–object form.
-    /// Currently:
+    /// This is a lightweight SVO form validator:
     /// - Ensures non-empty subject and verb
-    /// - Allows optional object if present
+    /// - Allows optional object if non-empty
     ///
-    /// Future upgrades:
-    /// - Schema-matching by verb roles
-    /// - Object-verb compatibility matrices
-    /// - Modifier and preposition handling
+    /// 📌 Called during scroll parsing for soft enforcement.
+    /// 📊 Debug logs SVO structure.
     ///
-    /// 📌 Usage:
-    /// - Called during scroll sentence parsing for soft grammar enforcement
-    ///
-    /// 📊 Debug logging (if enabled):
-    /// - Shows raw SVO values
-    /// - Suggests integration with more advanced validation logic
+    /// 🛠️ Future: Add schema-matching, verb role checking, and preposition handling.
     #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn is_valid_sentence(&self, subject: &str, verb: &str, object: Option<&str>) -> bool {
         let has_subject = !subject.trim().is_empty();
@@ -1294,12 +1481,15 @@ impl Parser {
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, Severity};
-            let expected = "Non-empty subject and verb, optional object";
             let actual = format!("s='{}', v='{}', o='{:?}'", subject, verb, object);
-
-            let entry = DebugEntry::new("is_valid_sentence", verb, expected, &actual)
-                .with_location("Parser::is_valid_sentence")
-                .with_suggestion("Improve validation using verb-object grammar matrix");
+            let entry = DebugEntry::new(
+                "is_valid_sentence",
+                verb,
+                "Non-empty subject and verb",
+                &actual,
+            )
+            .with_location("Parser::is_valid_sentence")
+            .with_suggestion("Improve validation using verb-object grammar matrix");
             println!("{entry:#?}");
         }
 
@@ -1312,123 +1502,279 @@ impl Parser {
 // ===================================================
 //
 // 🧾 Overview:
-//   - This section defines post-parse behavior for ScrollTree,
-//     including format conversion and spiritual alignment validation.
+//   - This section defines post-parse behavior for `ScrollTree`,
+//     including `.stone` serialization and grammar validation stubs.
 //
 // ⚙️ Engine Scope:
-//   - Converts internal node structures into `.stone` form
-//   - Offers semantic or scroll-style interpretation against the registry
+//   - Converts internal ScrollNode structures into readable `.stone` IR
+//   - Prepares structure for spiritual grammar validation
+//   - Interfaces softly with Operand Resolver and DebugEntry tracking
 //
 // ---------------------------------------------------
 // 🚨 Version Control Notice:
 // ---------------------------------------------------
 //   This logic is part of the OmniCode Parser Scroll.
 //   Any updates here must be reviewed for downstream effects.
-//   Comments marked ⚠️ indicate validator or compiler interface contracts.
+//   ⚠️ Comments marked as contract-bound signal compiler/validator interfaces.
 //
 // ---------------------------------------------------
-// 📅 Last Updated:
+// 📅 Scroll Revision Metadata:
 // ---------------------------------------------------
-//   Version       : v0.0.1
-//   Last Updated  : 2025-06-04
-//   Change Log    : Initial closing logic for ScrollTree output + validation
+//   _version_:       v0.0.3
+//   _last updated_:  2025-06-14
+//   _author_:        Seanje Lenox-Wise / Nova Dawn
+//   _change log_:
+//     - Improved `.stone` serializer logic with operand awareness
+//     - Replaced validation stub with semi-operational grammar hooks
+//     - Integrated debug feedback for sentence and node output
+//
+// ---------------------------------------------------
+// 🪜 Ladder Baton — Flow & Interface Direction:
+// ---------------------------------------------------
+//   ⬆️ Upstream:
+//     - Receives fully parsed `ScrollTree` from Parser logic (incl. node walkers)
+//     - Inherits operand-aligned nodes from operand resolution phase
+//
+//   ⬇️ Downstream:
+//     - Feeds `.stone` output into Watchtower (diagnostic scrolls)
+//     - Exports nodes into Assembler for IR transformation
+//     - Hooks into `.logos` validator (future) for theology and grammar audits
+//
+//   🔁 Parallel:
+//     - DebugEntry tracking feeds logs into OmniDebug channel
+//     - Grammar feedback loop will interface with ErrorEmitter sublayer
 //
 // ---------------------------------------------------
 // 🔮 Notes for Next Phase:
 // ---------------------------------------------------
-// - Consider expanding `to_stone()` to serialize node metadata.
-// - Future alignment check may include trust-level tiers or discrepancy tags.
-// - These outputs will flow into the OmniDebug protocol.
+// - Extend `to_stone()` to handle nested indentation and metadata fields
+// - Implement `.logos` validator and trust-based audit tagging
+// - Mirror `.stone` and `.logos` divergence points for truth scoring
+// - Start schema propagation through grammar roles and call assignments
 //
 // ---------------------------------------------------
 
+// ===============================================
+// 🧱 ScrollTree Output & Validation Methods
+// ===============================================
+
 impl ScrollTree {
+    // -------------------------------
+    // 🪨 Stone Format Serializer
+    // -------------------------------
+
     /// 🔁 Converts `ScrollTree` into intermediate `.stone` format.
     ///
-    /// This method serializes all top-level nodes into a placeholder format
-    /// used for debugging, transport, or readable display during IR inspection.
-    /// Each node is converted into a line or block, depending on type.
+    /// Serializes all top-level nodes into `.stone`—a linear, readable
+    /// intermediate representation for debugging, inspection, or transport.
     ///
-    /// 🧱 Future evolution:
+    /// 🔮 Future upgrades:
     /// - Prettify block formatting
-    /// - Support nested indentation
+    /// - Add nested indentation
     /// - Integrate schema-aware emitters
+    /// - Resolve operands using `.logos` or grammar walker
     pub fn to_stone(&self) -> String {
-        // 📜 Begin composing `.stone` lines from node contents
         let mut output = String::new();
+
         for node in &self.nodes {
             match node {
+                // ✨ Basic instruction: verb and arguments flattened
                 ScrollNode::Instruction { name, args } => {
                     output += &format!("{} {}\n", name, args.join(" "));
+                    // 🔍 If operand resolver enriches args in future, update format here
                 }
+
+                // 📖 Scroll-style sentence: subject–verb–object grammar
                 ScrollNode::ScrollSentence {
                     subject,
                     verb,
                     object,
                 } => {
                     output += &format!("{} {} {}\n", subject, verb, object);
+                    // 🧠 Could later enrich with operand role types or tags
                 }
+
+                // 🧷 Assignment: `x = value`
                 ScrollNode::Assignment { target, value } => {
                     output += &format!("{} = {}\n", target, value);
+                    // ⚙️ Operand-aware value? Ensure proper spacing or quotes if literal
                 }
+
+                // 🔢 Literal node: raw value capture
                 ScrollNode::Literal(val) => {
                     output += &format!("literal {}\n", val);
                 }
+
+                // 🏷️ Metadata: for tags, titles, or attributes
                 ScrollNode::Metadata(data) => {
                     output += &format!("meta {}\n", data);
                 }
+
+                // 🧱 Block: nested child nodes, displayed as internal lines
                 ScrollNode::Block(inner) => {
                     output += "{\n";
                     for child in inner {
-                        output += &format!("{:?}\n", child); // 📌 Replace with prettier .stone render
+                        // 🚧 TEMP: Debug output — replace with `child.to_stone()` or similar
+                        output += &format!("  {:?}\n", child);
                     }
                     output += "}\n";
                 }
+
+                // 🚨 Error display
                 ScrollNode::Error(err) => {
                     output += &format!("!error {}\n", err);
                 }
+
+                // 📝 Declaration: `let name: Type`
                 ScrollNode::Declaration { name, dtype } => {
-                    let type_part = dtype.clone().unwrap_or_else(|| "Unknown".into());
-                    output += &format!("let {}: {}\n", name, type_part);
+                    let dtype_display = dtype.clone().unwrap_or_else(|| "Unknown".into());
+                    output += &format!("let {}: {}\n", name, dtype_display);
                 }
+
+                // 🔀 Conditional: just show condition inline
                 ScrollNode::Conditional { condition, .. } => {
                     output += &format!("if {}\n", condition);
+                    // 🌿 Future: emit body as well (nested blocks)
                 }
+
+                // 🔁 Loop: emit as `loop <cond>`
                 ScrollNode::Loop { condition, .. } => {
                     output += &format!("loop {}\n", condition);
+                    // 🌱 Similar: body emission later
                 }
+
+                // 📥 Import statements
                 ScrollNode::Import(path) => {
                     output += &format!("import {}\n", path);
                 }
+
+                // 🔚 Return value — potentially operand-wrapped
                 ScrollNode::Return(value) => {
                     output += &format!("return {}\n", value);
+                    // 🧩 Future: value may come from operand tree
                 }
+
+                // 📞 Function call
                 ScrollNode::Call { function, args } => {
+                    // 💡 Function call emits like: `func(arg1, arg2)`
                     output += &format!("{}({})\n", function, args.join(", "));
+                    // 🧠 Operand resolver may later format args differently
                 }
+
+                // 💬 Comments in scroll
                 ScrollNode::Comment(text) => {
                     output += &format!("// {}\n", text);
                 }
             }
         }
+
         output
     }
 
+    // -------------------------------
+    // 📖 Scroll Validation (.logos-Aligned)
+    // -------------------------------
+
     /// 📖 Validates the `ScrollTree` against .logos grammar and Scripture alignment.
     ///
-    /// Placeholder for spiritual validation logic.
-    /// Will eventually walk each scroll node against a sentence validator
-    /// wired to Scripture schema, checking alignment to Kingdom protocol.
+    /// Early validation logic now includes:
+    /// - Subject–Verb–Object sentence checks
+    /// - Instruction name registry checks
+    /// - Return statement validity
     ///
-    /// 🌾 Use case:
-    /// - Grammar audits
-    /// - Sentence holiness checks
-    /// - Instruction alignment with truth
-    ///
-    /// 🔍 Debug output (when enabled):
-    /// - Shows validation phase
-    /// - Suggests future `.logos` wiring
+    /// 🛐 Future integration:
+    /// - Full `.logos` spiritual schema
+    /// - Verse-backed alignment walkers
+    /// - Drift diagnostics and audit score
+    #[cfg_attr(not(any(test, feature = "debug_mode")), allow(dead_code))]
     pub fn validate_with_scripture(&self) -> bool {
+        use crate::parser::Parser;
+
+        // 📜 Create a temporary parser instance for access to instruction registry and validators
+        let validator = Parser::new(vec![]); // 🧪 Only used to call helper functions
+
+        for node in &self.nodes {
+            match node {
+                // 🔍 Validate subject–verb–object structure
+                ScrollNode::ScrollSentence {
+                    subject,
+                    verb,
+                    object,
+                } => {
+                    let is_valid = validator.is_valid_sentence(subject, verb, Some(object));
+                    if !is_valid {
+                        #[cfg(feature = "debug_mode")]
+                        {
+                            use crate::debugger::{DebugEntry, Severity};
+                            let entry = DebugEntry::new(
+                                "validate_with_scripture",
+                                &format!("{} {} {}", subject, verb, object),
+                                "Valid SVO sentence",
+                                "Failed validation",
+                            )
+                            .with_location("ScrollTree::validate_with_scripture")
+                            .with_severity(Severity::Warning)
+                            .with_suggestion("Review sentence structure or verb roles");
+                            println!("{entry:#?}");
+                        }
+                        return false; // 🚨 Fatal alignment failure
+                    }
+                }
+
+                // 🔍 Validate instruction name against registry
+                ScrollNode::Instruction { name, .. } => {
+                    if validator
+                        .decode_instruction(&Token::from_value(name))
+                        .is_none()
+                    {
+                        #[cfg(feature = "debug_mode")]
+                        {
+                            use crate::debugger::{DebugEntry, Severity};
+                            let entry = DebugEntry::new(
+                                "validate_with_scripture",
+                                name,
+                                "Known instruction",
+                                "Unknown instruction",
+                            )
+                            .with_location("ScrollTree::validate_with_scripture")
+                            .with_severity(Severity::Warning)
+                            .with_suggestion("Verify instruction name is part of the registry");
+                            println!("{entry:#?}");
+                        }
+                        return false; // 🚨 Invalid instruction
+                    }
+                }
+
+                // ⚠️ Return with empty or suspicious value
+                ScrollNode::Return(value) => {
+                    if value.trim().is_empty() || value == "None" {
+                        #[cfg(feature = "debug_mode")]
+                        {
+                            use crate::debugger::{DebugEntry, Severity};
+                            let entry = DebugEntry::new(
+                                "validate_with_scripture",
+                                value,
+                                "Non-empty return",
+                                "Empty or invalid return value",
+                            )
+                            .with_location("ScrollTree::validate_with_scripture")
+                            .with_severity(Severity::Warning)
+                            .with_suggestion(
+                                "Ensure return carries actual meaning or operand value",
+                            );
+                            println!("{entry:#?}");
+                        }
+                        return false;
+                    }
+                }
+
+                _ => {
+                    // ✨ Other node types are considered valid by default
+                    // May be enriched in future .logos validations
+                }
+            }
+        }
+
         #[cfg(feature = "debug_mode")]
         {
             use crate::debugger::{DebugEntry, Severity};
@@ -1439,20 +1785,10 @@ impl ScrollTree {
                 "Validation passed",
             )
             .with_location("ScrollTree::validate_with_scripture")
-            .with_suggestion("Wire in `.logos` sentence walker and Scripture hooks");
+            .with_suggestion("Integrate .logos validator hooks");
             println!("{entry:#?}");
         }
 
-        // 🛐 TODO: Implement spiritual grammar validator
-        // ------------------------------------------------------
-        // - Hook into the .logos engine and instruction schema
-        // - Walk each ScrollNode for alignment with sacred patterns
-        // - Validate ScrollSentences by subject–verb–object logic
-        // - Verify instruction usage aligns with .logos roles
-        // - Attach scripture references or error severity if drifted
-        // - Return `false` on fatal theological misalignment
-        // ------------------------------------------------------
-
-        true // Temporary grace — assumes scroll is valid
+        true // ✅ Passed all checks
     }
 }
