@@ -499,14 +499,8 @@ impl Bearer {
         // Emits trace status from resolution to Watchtower or logs.
         Self::emit_watchtower_log(instruction);
 
-        // ➕ Phase 5A — TrustTier Cascade (scaffolded)
-        let mut highest_tier = TrustTier:: Certain;
-        for tier in instruction.trust_flags.values() {
-            if tier < &highest_tier {
-                highest_tier = tier.clone();
-            }
-        }
-        instruction.trust_summary = Some(highest_tier); // Must exist in struct
+        // ➕ Phase 5A — TrustTier Cascade
+        Self::cascade_trust_summary(instruction);
 
         // ===============================================
         // 🌿 Phase 6 — Reconciliation & Operand Rewalk (future)
@@ -543,31 +537,61 @@ impl Bearer {
     // ===============================================
     // 🧩 Phase 1 — Field Extraction Logic
     // ===============================================
-    /// Extract operand-relevant fields from an instruction.
-    fn extract_fields(instruction: &Instruction) -> (String, String, String) {
-        let subject = instruction.subject.clone();
-        let verb = instruction.verb.clone();
-        let object = instruction.object.clone();
+    /// Extracts operand-relevant fields from a parsed instruction scroll.
+    /// Performs basic cleaning and emits trace warnings if fields are malformed.
+    /// This phase breathes structure into the scroll — the first clarity pass.
+    fn extract_fields(instruction: &mut Instruction) -> (String, String, String) {
+        // 🪶 Clean whitespace from each field
+        let subject = instruction.subject.trim().to_string();
+        let verb = instruction.verb.trim().to_string();
+        let object = instruction.object.trim().to_string();
+
+        // 🧭 Field validation — emit to debug trace if any are missing
+        if subject.is_empty() {
+            instruction.debug_trace.push(DebugEntry {
+                line: instruction.line,
+                message: "Subject field is empty — malformed instruction detected.".to_string(),
+                severity: Severity::Broken,
+            });
+        }
+
+        if verb.is_empty() {
+            instruction.debug_trace.push(DebugEntry {
+                line: instruction.line,
+                message: "Verb field is empty — intent of instruction unclear.".to_string(),
+                severity: Severity::Drifted,
+            });
+        }
+
+        if object.is_empty() {
+            instruction.debug_trace.push(DebugEntry {
+                line: instruction.line,
+                message: "Object field is empty — operand construction may fail.".to_string(),
+                severity: Severity::Shadowed,
+            });
+        }
+
+        // Return structured tuple for classification
         (subject, verb, object)
     }
-
-    // ➕ Phase 1A — Structural Validation (scaffolded inside resolve_operands)
-    // No separate method needed—basic field checks are inline for now.
 
     // ===============================================
     // 🔍 Phase 2 — Pattern Recognition Logic
     // ===============================================
     /// Classify operand type from subject-verb-object form.
     fn classify_pattern(subject: &str, verb: &str, object: &str) -> OperandType {
-        match (subject, verb, object) {
-            ("Let", _, _) => OperandType::Symbol,
-            ("Set", _, _) => OperandType::Symbol,
-            ("Return", _, _) => OperandType::Unknown,
+        // ➕ Phase 2A — Verb Taxonomy Matching
+        let verb_role = match_verb_taxonomy(verb);
+
+        match verb_role {
+            Some("Assignment") => OperandType::Symbol,
+            Some("Control") => OperandType::Unknown, // Will later map to control-type operands
+            Some("Mutation") => OperandType::Unknown, // Mutation logic deferred
             _ => OperandType::Unknown,
         }
     }
 
-    // ➕ Phase 2A — Verb Taxonomy Matching
+    /// ➕ Phase 2A — Verb Taxonomy Matching
     fn match_verb_taxonomy(verb: &str) -> Option<&'static str> {
         match verb.to_lowercase().as_str() {
             "let" | "set" | "define" => Some("Assignment"),
@@ -577,7 +601,7 @@ impl Bearer {
         }
     }
 
-    // ➕ Phase 2B — AI-Based Deduction (scaffolded)
+    /// ➕ Phase 2B — AI-Based Deduction (scaffolded)
     fn flag_for_ai_deduction(instruction: &mut Instruction) {
         instruction.debug_trace.push(DebugEntry {
             line: instruction.line,
@@ -627,81 +651,338 @@ impl Bearer {
     // ===============================================
     // 🛠 Phase 4 — Instruction State Resolution Logic
     // ===============================================
+    /// Updates the instruction status based on operand resolution outcome.
+    /// Also prepares trace feedback and triggers rewalk logic for low-trust states.
     fn update_instruction_state(instruction: &mut Instruction, resolved: bool) {
         if resolved {
+            // ✅ All operands resolved clearly — instruction is now ready for assembly.
             instruction.status = InstructionStatus::ReadyToAssemble;
+
+            // 🗒️ Log resolution success for Watchtower or internal debug tracing.
+            instruction.debug_trace.push(DebugEntry {
+                line: instruction.line,
+                message: "Operands resolved — instruction marked ReadyToAssemble.".to_string(),
+                severity: Severity::Valid,
+            });
         } else {
+            // ⚠️ Operand resolution incomplete or ambiguous — mark for further review.
             instruction.status = InstructionStatus::RequiresResolution;
+
+            // 🗒️ Log resolution failure for Watchtower and trace output.
+            instruction.debug_trace.push(DebugEntry {
+                line: instruction.line,
+                message: "Operands incomplete — instruction marked RequiresResolution.".to_string(),
+                severity: Severity::Drifted,
+            });
+
+            // 🧠 Trust rating may trigger retry/reprocess logic.
+            if let Some(ref tier) = instruction.trust_summary {
+                match tier {
+                    TrustTier::Shadowed | TrustTier::Ambiguous => {
+                        // 🛠️ Instruction may need another pass — set rewalk flag and retry count.
+                        instruction.rewalk_flag = true;
+                        instruction.retry_count += 1;
+
+                        instruction.debug_trace.push(DebugEntry {
+                            line: instruction.line,
+                            message: "Low trust tier — rewalk triggered on this instruction.".to_string(),
+                            severity: Severity::Shadowed,
+                        });
+
+                        // 🤝 Defer resolution to NovaAI or Watchtower agent in next pass.
+                        instruction.defer_to_watchtower = true;
+                    }
+
+                    _ => {
+                        // 🧘 Trust level sufficient — no rewalk needed yet.
+                        instruction.debug_trace.push(DebugEntry {
+                            line: instruction.line,
+                            message: "Trust sufficient — no rewalk triggered.".to_string(),
+                            severity: Severity::Valid,
+                        });
+                    }
+                }
+            }
         }
     }
 
     // ===============================================
     // 📡 Phase 5 — Debug Emission to Watchtower
     // ===============================================
+    /// Emits instruction resolution results and trace history to Watchtower.
+    /// This phase closes the scroll’s breath, exposing all alignment states.
+    /// Outputs every DebugEntry — not just status — to support full traceability.
     fn emit_watchtower_log(instruction: &Instruction) {
-        let log = DebugEntry {
+        // 📡 Emit each debug trace entry individually
+        for entry in &instruction.debug_trace {
+            // 🛰️ Primary output: Console trace for local development
+            println!("{:?}", entry);
+
+            // 🛸 Secondary output: Forward to Watchtower hook if present
+            if let Some(ref hook) = instruction.watchtower_hook {
+                hook(entry.clone());
+            }
+
+            // 🔭 Future: Integrate with NovaAI debug channel or persistent scroll logger
+            // e.g., NovaBridge::send_log(entry.clone());
+        }
+
+        // 📜 Emit final resolution status as a capstone event
+        let status_log = DebugEntry {
             line: instruction.line,
-            message: format!(
-                "Bearer resolution status: {:?}",
-                instruction.status
-            ),
-            severity: Severity::Valid,
+            message: format!("Bearer resolution status: {:?}", instruction.status),
+            severity: match instruction.status {
+                InstructionStatus::ReadyToAssemble => Severity::Valid,
+                InstructionStatus::RequiresResolution => Severity::Drifted,
+                InstructionStatus::RequiresRewalk => Severity::Shadowed,
+                InstructionStatus::Invalid => Severity::Broken,
+            },
         };
 
-        println!("{:?}", log);
-    }
-
-    // ➕ Phase 5A — TrustTier Cascade
-    fn cascade_trust_summary(instruction: &mut Instruction) {
-        let mut highest = TrustTier::Certain;
-        for tier in instruction.trust_flags.values() {
-            if tier < &highest {
-                highest = tier.clone();
-            }
+        // Console + hook broadcast
+        println!("{:?}", status_log);
+        if let Some(ref hook) = instruction.watchtower_hook {
+            hook(status_log);
         }
-        instruction.trust_summary = Some(highest);
+
+        // ===============================================
+        // ➕ Phase 5A — TrustTier Cascade
+        // ===============================================
+        /// Analyzes all operand-level trust flags and sets a single trust summary.
+        /// This helps reflect confidence level in the instruction as a whole.
+        /// Trust cascades upward: the weakest link defines the spiritual posture of the instruction.
+        fn cascade_trust_summary(instruction: &mut Instruction) {
+            // 🎚️ Start with strongest trust tier and downgrade as needed
+            let mut highest = TrustTier::Certain;
+
+            // 🔎 Examine each operand trust flag
+            for tier in instruction.trust_flags.values() {
+                if tier < &highest {
+                    highest = tier.clone();
+                }
+            }
+
+            // 🏷️ Attach the final trust score to instruction for future reconciliation checks
+            instruction.trust_summary = Some(highest.clone());
+
+            // 📝 Echo to debug trace for post-run audit
+            instruction.debug_trace.push(DebugEntry {
+                line: instruction.line,
+                message: format!("TrustTier summary cascaded: {:?}", highest),
+                severity: Severity::Valid,
+            });
+        }
     }
 
     // ===============================================
     // 🌿 Phase 6 — Reconciliation & Operand Rewalk
     // ===============================================
+    /// This phase inspects the resolved operands for structural gaps or
+    /// low-confidence patterns. It flags instructions for reprocessing
+    /// if unresolved or invalid elements are found.
+    ///
+    /// It also prepares the instruction for later passes by setting:
+    /// - `rewalk_flag` for recursive resolution
+    /// - `retry_count` for tracking attempt cycles
+    /// - `defer_to_watchtower` for NovaAI/agent handoff if necessary
+    ///
+    /// Phase 6 ensures instructions that drifted from alignment get another
+    /// chance at clarity, without breaking assembly flow prematurely.
     fn check_for_rewalk(instruction: &mut Instruction) {
-        if instruction
-            .resolved_operands
-            .iter()
-            .any(|op| matches!(op, Operand::Placeholder(_)))
-        {
+        let mut requires_rewalk = false;
+
+        for operand in &instruction.resolved_operands {
+            match operand {
+                Operand::Placeholder(_) => {
+                    // 🧩 A placeholder means something wasn't recognized — we should retry.
+                    instruction.debug_trace.push(DebugEntry {
+                        line: instruction.line,
+                        message: "Operand placeholder detected — rewalk recommended.".to_string(),
+                        severity: Severity::Shadowed,
+                    });
+
+                    requires_rewalk = true;
+                }
+
+                Operand::InvalidOperand(_) => {
+                    // ❌ Invalid operands indicate parsing or logic failure.
+                    instruction.debug_trace.push(DebugEntry {
+                        line: instruction.line,
+                        message: "Invalid operand encountered — flagged for operand rewalk.".to_string(),
+                        severity: Severity::Broken,
+                    });
+
+                    requires_rewalk = true;
+
+                    // 🔁 Escalate unresolved issues to Watchtower agent or NovaAI support.
+                    instruction.defer_to_watchtower = true;
+                }
+
+                _ => {
+                    // ✅ Operand is valid and trustworthy — no need to rewalk.
+                }
+            }
+        }
+
+        if requires_rewalk {
+            // 🔁 Enable retry flow and mark for multi-pass resolution strategies.
+            instruction.rewalk_flag = true;
+            instruction.retry_count += 1;
+
+            // 🚧 (Optional future): mark status for scroll rewalker system or agent triggers.
+            instruction.status = InstructionStatus::RequiresRewalk;
+
+            // 🗒️ Echo resolution intent for Watchtower trace.
             instruction.debug_trace.push(DebugEntry {
                 line: instruction.line,
-                message: "Instruction contains placeholders — rewalk may be required.".to_string(),
-                severity: Severity::Shadowed,
+                message: "Instruction flagged for rewalk cycle and deeper reconciliation.".to_string(),
+                severity: Severity::Drifted,
             });
+        }
+    }
+
+    // ===============================================
+    // 🛠️ Metadata Helper — Optional Utility
+    // ===============================================
+    /// ✨ Utility helper to insert metadata if value is present.
+    /// Used to reduce redundancy and improve Phase 7 clarity.
+    fn insert_metadata(instruction: &mut Instruction, key: &str, value: Option<String>) {
+        if let Some(val) = value {
+            instruction.metadata_tags.insert(key.to_string(), val);
         }
     }
 
     // ===============================================
     // 📎 Phase 7 — Operand Metadata Tagging
     // ===============================================
+    /// Assigns contextual metadata to the instruction’s scroll.
+    /// Tracks operand origin, trust state, operand role, source, and hint.
+    /// Now uses a helper to insert values cleanly.
     fn tag_operand_metadata(instruction: &mut Instruction) {
-        let note = format!("Origin line: {}", instruction.line);
-        instruction
-            .metadata_tags
-            .insert("operand_origin".to_string(), note);
+        // 🏷️ Line of origin — always recorded.
+        insert_metadata(
+            instruction,
+            "operand_origin",
+            Some(format!("Origin line: {}", instruction.line)),
+        );
+
+        // 🔐 Trust tier — if determined.
+        insert_metadata(
+            instruction,
+            "trust_tier",
+            instruction.trust_summary
+                .as_ref()
+                .map(|tier| format!("Trust tier: {:?}", tier)),
+        );
+
+        // 📌 Operand role — if first resolved operand exists.
+        insert_metadata(
+            instruction,
+            "operand_role",
+            instruction.resolved_operands.first().map(|op| {
+                match op {
+                    Operand::Binding { .. } => "Binding",
+                    Operand::Literal { .. } => "Literal",
+                    Operand::InstructionRef(_) => "InstructionRef",
+                    Operand::Placeholder(_) => "Placeholder",
+                    Operand::Wildcard => "Wildcard",
+                    Operand::InvalidOperand(_) => "Invalid",
+                    Operand::Group(_) => "Group",
+                    Operand::InstructionCall(_) => "InstructionCall",
+                }
+                .to_string()
+            }),
+        );
+
+        // 🛠️ Resolution state — assembler readiness.
+        insert_metadata(
+            instruction,
+            "resolution_state",
+            Some(match instruction.status {
+                InstructionStatus::ReadyToAssemble => "Final",
+                InstructionStatus::RequiresResolution => "Pending",
+                InstructionStatus::RequiresRewalk => "Rewalk",
+                InstructionStatus::Invalid => "Invalid",
+            }
+            .to_string()),
+        );
+
+        // 📜 Source scroll — if assigned.
+        insert_metadata(
+            instruction,
+            "source_scroll",
+            instruction.source_scroll.clone(),
+        );
+
+        // 🧠 Operand hint — if annotated.
+        insert_metadata(
+            instruction,
+            "operand_hint",
+            instruction.operand_hint.clone(),
+        );
+
+        // 💡 Notes:
+        // - These metadata tags are read by Watchtower logs, NovaAI overlays, and system validators.
+        // - All fields are optional but encouraged for scroll-based clarity and debugging.
     }
 
     // ===============================================
     // 🪞 Phase 8 — MetaOperand & Reflective Operand Support
     // ===============================================
+    /// Identifies and handles operand forms that represent indirect,
+    /// symbolic, or reflective references rather than direct values.
+    /// This includes placeholders, wildcards, and instruction references,
+    /// which require special treatment in advanced assembler phases.
     fn handle_meta_operand(instruction: &mut Instruction, operand: &Operand) {
-        if matches!(
-            operand,
-            Operand::Wildcard | Operand::InstructionRef(_) | Operand::Placeholder(_)
-        ) {
-            instruction.debug_trace.push(DebugEntry {
-                line: instruction.line,
-                message: "MetaOperand or reflective operand form detected.".to_string(),
-                severity: Severity::Valid,
-            });
+        match operand {
+            Operand::Wildcard => {
+                // 🌌 A wildcard is an open operand — accepted but marked as symbolic.
+                instruction.debug_trace.push(DebugEntry {
+                    line: instruction.line,
+                    message: "Wildcard operand detected — symbolic binding accepted.".to_string(),
+                    severity: Severity::Valid,
+                });
+
+                instruction
+                    .metadata_tags
+                    .insert("meta_operand_type".to_string(), "Wildcard".to_string());
+            }
+
+            Operand::InstructionRef(_) => {
+                // 🔁 A reference to another instruction — denotes relational operand form.
+                instruction.debug_trace.push(DebugEntry {
+                    line: instruction.line,
+                    message: "InstructionRef operand detected — reflective context required.".to_string(),
+                    severity: Severity::Valid,
+                });
+
+                instruction
+                    .metadata_tags
+                    .insert("meta_operand_type".to_string(), "InstructionRef".to_string());
+
+                // ⛓️ Optionally mark the instruction as needing reflective evaluation.
+                instruction.defer_to_watchtower = true;
+            }
+
+            Operand::Placeholder(_) => {
+                // 🕳️ Placeholder detected — symbolic and unresolved.
+                instruction.debug_trace.push(DebugEntry {
+                    line: instruction.line,
+                    message: "Placeholder operand detected — operand remains unresolved.".to_string(),
+                    severity: Severity::Shadowed,
+                });
+
+                instruction
+                    .metadata_tags
+                    .insert("meta_operand_type".to_string(), "Placeholder".to_string());
+
+                // ⚠️ Signal potential rewalk if not already triggered.
+                instruction.rewalk_flag = true;
+            }
+
+            _ => {
+                // ✅ Not a meta operand — nothing to handle here.
+            }
         }
     }
 }
@@ -744,93 +1025,319 @@ impl Bearer {
 //
 // ---------------------------------------------------
 
+// ===================================================
+// 🧭 Bearer — Operand Resolution Engine
+// ===================================================
+// This `impl Bearer` block defines the full behavioral logic
+// for managing operand resolution from scroll parsing to
+// Watchtower reporting. All functions are grouped into themed
+// regions for clarity, maintainability, and spiritual tracing.
+// ===================================================
+
 impl Bearer {
+
+    // ===================================================
+    // ✅ POST-RESOLUTION CONFIRMATION
+    // ===================================================
+
     /// ✅ Final confirmation that all operand fields have been classified and constructed.
     ///
     /// This method walks the operands assigned to an instruction and
-    /// checks if all have been resolved to valid types. This is a post-pass
-    /// that assumes resolution logic has been attempted prior.
+    /// checks if all have been resolved to valid types. It ensures no
+    /// placeholders, invalid stubs, or unresolved entries remain.
     ///
-    /// Returns true if all operands are valid.
+    /// This is a **post-pass sanity check** to confirm that all operands
+    /// are spiritually and structurally aligned before proceeding to assembly.
+    ///
+    /// Returns `true` if all operands are valid and ready.
     pub fn validate_operands(instruction: &Instruction) -> bool {
-        // TODO: Once Instruction contains operands, inspect each for Operand::Unresolved
-        // If any unresolved remains, return false; otherwise, return true
-        true // 🕊 Temporary grace
-    }
+        for operand in &instruction.resolved_operands {
+            match operand {
+                Operand::InvalidOperand(_) | Operand::Placeholder(_) => {
+                    // 🧾 Record warning trace (optional in later Watchtower logging)
+                    #[cfg(feature = "debug_mode")]
+                    println!(
+                        "⚠️ [Validate] Operand not fully resolved: {:?} (line {})",
+                        operand, instruction.line
+                    );
 
-    /// 🛰 Emit debug snapshot to the Watchtower after operand resolution.
-    ///
-    /// This will eventually create a full diagnostic payload per operand,
-    /// including origin line, symbol status, and spiritual clarity index.
-    /// Designed to trace each Bearer action across phases.
-    pub fn report_to_watchtower(instruction: &Instruction) {
-        // TODO: Integrate with Watchtower::log once available
-        #[cfg(feature = "debug_mode")]
-        {
-            println!(
-                "📡 [Bearer] Instruction resolved: {:?}",
-                instruction.status
-            );
+                    // 🚨 If any operand is incomplete, resolution is not valid
+                    return false;
+                }
+                _ => {
+                    // ✅ Operand is valid — continue checking others
+                }
+            }
         }
-    }
 
-    /// 🧾 Optional serializer for logging or assembly review
-    ///
-    /// Converts the resolved operand set into a textual or symbolic form
-    /// that can be stored, reviewed, or passed along scroll chains.
-    pub fn export_operand_signature(instruction: &Instruction) -> String {
-        // TODO: Once operand list is available, format each one with type + value
-        "operand signature: [TODO]".to_string()
-    }
-
-    /// 🌀 Begins operand resolution from the scroll tree root.
-    pub fn begin_resolution(&mut self, scroll_tree: ScrollTree) {
-        self.scroll_tree = Some(scroll_tree);
-        // TODO: Walk tree and begin operand discovery
-    }
-
-    /// 📚 Loads the operand schema for a specific instruction.
-    pub fn load_instruction_schema(&mut self, instruction: &Instruction) {
-        self.instruction_schema = self.instruction_registry.get_schema(&instruction.name);
-        // TODO: Validate existence and arity
-    }
-
-    /// 🌿 Walks the scroll tree and processes operand nodes.
-    pub fn walk_scroll_tree(&mut self) {
-        // TODO: Traverse and trigger classification
-    }
-
-    /// 🪞 Validates operand count against expected arity.
-    pub fn validate_arity(&self, node: &ScrollNode, schema: &OperandSchema) -> bool {
-        // TODO: Return true if arity matches
+        // 🎯 All operands passed validation
         true
     }
 
+    // ===================================================
+    // 📡 WATCHTOWER & TRACE EMISSION
+    // ===================================================
+
+    /// 🛰 Emit debug snapshot to the Watchtower after operand resolution.
+    ///
+    /// This function creates a diagnostic payload from the instruction state
+    /// and emits it to the central Watchtower system. It allows deeper
+    /// system introspection and alignment checks across components.
+    pub fn report_to_watchtower(instruction: &Instruction) {
+        // Construct a basic debug payload based on the current instruction state
+        let payload = DebugEntry {
+            line: instruction.line,
+            message: format!(
+                "Resolution status: {:?} | Trust summary: {:?}",
+                instruction.status,
+                instruction.trust_summary.as_ref().unwrap_or(&TrustTier::Shadowed)
+            ),
+            severity: match instruction.status {
+                InstructionStatus::ReadyToAssemble => Severity::Valid,
+                InstructionStatus::RequiresResolution => Severity::Drifted,
+                InstructionStatus::Invalid => Severity::Broken,
+                InstructionStatus::RequiresRewalk => Severity::Shadowed,
+            },
+        };
+
+        // Send the payload to the Watchtower if a hook exists
+        if let Some(ref hook) = instruction.watchtower_hook {
+            hook(payload.clone()); // Pass a clone if ownership is taken
+        }
+
+        // Always emit to CLI trace in debug mode for local inspection
+        #[cfg(feature = "debug_mode")]
+        {
+            println!("📡 [Watchtower Emission] {:?}", payload);
+        }
+
+        // 📬 Future: Relay to NovaBridge (for AI-assisted commentary or remote logging)
+        // if let Some(bridge) = NovaBridge::current() {
+        //     let signature = Self::export_operand_signature(instruction);
+        //     let nova_payload = NovaPayload::from_debug_entry(payload, signature);
+        //     bridge.send(nova_payload);
+        // }
+    }
+
+
+    /// 🧾 Optional serializer for logging or assembly review.
+    ///
+    /// Converts the resolved operand set into a readable signature format,
+    /// useful for trace logs, scroll metadata, or assembler inspection.
+    /// This acts as a compressed summary of operand resolution results.
+    pub fn export_operand_signature(instruction: &Instruction) -> String {
+        let mut signature = vec![];
+
+        for operand in &instruction.resolved_operands {
+            let kind = match operand {
+                Operand::Literal { .. } => "Literal",
+                Operand::Binding { .. } => "Symbol",
+                Operand::Wildcard => "Wildcard",
+                Operand::InstructionRef(_) => "InstructionRef",
+                Operand::Placeholder(_) => "Placeholder",
+                Operand::InvalidOperand(_) => "Invalid",
+            };
+
+            let value = format!("{:?}", operand);
+            signature.push(format!("{}: {}", kind, value));
+        }
+
+        format!("[{}]", signature.join(" | "))
+    }
+
+    // ===================================================
+    // 🌿 RESOLUTION ENTRY & SCHEMA LOADING
+    // ===================================================
+
+    /// 🌀 Begins operand resolution from the scroll tree root.
+    ///
+    /// This method plants the scroll tree into the Bearer and
+    /// immediately initiates tree traversal to extract and classify operands.
+    pub fn begin_resolution(&mut self, scroll_tree: ScrollTree) {
+        self.scroll_tree = Some(scroll_tree);
+
+        // 🌿 Begin operand discovery immediately
+        self.walk_scroll_tree();
+    }
+
+    /// 📚 Loads the operand schema for a specific instruction.
+    ///
+    /// Retrieves the operand schema (arity and expected operand structure)
+    /// from the instruction registry based on the instruction’s name.
+    /// Logs a warning if the schema is missing, malformed, or mismatched.
+    pub fn load_instruction_schema(&mut self, instruction: &Instruction) {
+        self.instruction_schema = self
+            .instruction_registry
+            .get_schema(&instruction.name);
+
+        if self.instruction_schema.is_none() {
+            self.record_debug_entry(DebugEntry {
+                line: instruction.line,
+                message: format!("Missing schema for instruction '{}'", instruction.name),
+                severity: Severity::Broken,
+            });
+        }
+    }
+
+    // ===================================================
+    // 🔍 SCROLL TREE PROCESSING & ARITY VALIDATION
+    // ===================================================
+
+    /// 🌿 Walks the scroll tree and processes operand nodes.
+    ///
+    /// This function iterates through the children of the scroll tree root,
+    /// classifies operand types, validates arity, and constructs resolved operands.
+    /// It assumes a schema has been loaded prior to invocation.
+    pub fn walk_scroll_tree(&mut self) {
+        if self.scroll_tree.is_none() || self.instruction_schema.is_none() {
+            eprintln!("⚠️ Cannot walk tree — scroll or schema missing.");
+            return;
+        }
+
+        let tree = self.scroll_tree.as_ref().unwrap();
+        let schema = self.instruction_schema.as_ref().unwrap();
+
+        // Only process top-level children for now
+        let operand_nodes = &tree.root.children;
+
+        // 🔍 Validate operand count (arity)
+        if !self.validate_arity(&tree.root, schema) {
+            self.record_debug_entry(DebugEntry {
+                line: 0,
+                message: format!(
+                    "Arity mismatch: expected {}, found {}.",
+                    schema.arity,
+                    operand_nodes.len()
+                ),
+                severity: Severity::Broken,
+            });
+            return;
+        }
+
+        // 🌱 Walk each operand node, classify, construct, and store
+        for node in operand_nodes {
+            let operand_type = self.classify_operand_type(node);
+            let operand = self.construct_operand(node, operand_type);
+            let trust = self.mark_trust_level(&operand);
+
+            self.operands.push(operand.clone());
+
+            self.record_debug_entry(DebugEntry {
+                line: node.line,
+                message: format!("Resolved operand: {:?} with trust {:?}", operand, trust),
+                severity: Severity::Valid,
+            });
+        }
+    }
+
+    /// 🪞 Validates operand count against expected arity.
+    ///
+    /// Returns true if the number of operand nodes matches the schema arity.
+    pub fn validate_arity(&self, node: &ScrollNode, schema: &OperandSchema) -> bool {
+        node.children.len() == schema.arity
+    }
+
+    // ===================================================
+    // 🛠 OPERAND CONSTRUCTION & TYPE LOGIC
+    // ===================================================
+
     /// 🪶 Determines the operand type based on the node.
+    ///
+    /// This logic checks the structure and token contents of a scroll node
+    /// to determine if it’s a literal, binding, or symbolic reference.
+    /// For now, it's simple — but it's structured for evolution.
     pub fn classify_operand_type(&self, node: &ScrollNode) -> OperandType {
-        // TODO: Inspect token, pattern, structure
-        OperandType::Unknown
+        if node.token.starts_with('"') && node.token.ends_with('"') {
+            OperandType::Literal
+        } else if node.token.starts_with('$') {
+            OperandType::Binding
+        } else if node.token == "*" {
+            OperandType::Wildcard
+        } else if node.token.starts_with("ref:") {
+            OperandType::InstructionRef
+        } else if node.token == "_" {
+            OperandType::Placeholder
+        } else {
+            OperandType::Unknown
+        }
     }
 
     /// 🏗️ Constructs the operand from a scroll node and type.
+    ///
+    /// This function builds the appropriate operand variant
+    /// based on parsed operand type and the node's token contents.
     pub fn construct_operand(&self, node: &ScrollNode, operand_type: OperandType) -> Operand {
-        // TODO: Build variant with placeholder value
-        Operand::InvalidOperand("unresolved".to_string())
+        match operand_type {
+            OperandType::Literal => Operand::Literal {
+                value: node.token.trim_matches('"').to_string(),
+            },
+            OperandType::Binding => Operand::Binding {
+                symbol: node.token.trim_start_matches('$').to_string(),
+            },
+            OperandType::Wildcard => Operand::Wildcard,
+            OperandType::InstructionRef => Operand::InstructionRef(
+                node.token.trim_start_matches("ref:").to_string(),
+            ),
+            OperandType::Placeholder => Operand::Placeholder("_".to_string()),
+            OperandType::Unknown => Operand::InvalidOperand(node.token.clone()),
+        }
     }
 
     /// 🕊️ Assigns a trust tier to a resolved operand.
+    ///
+    /// This scoring system is temporary. It provides a rudimentary
+    /// mapping of operand clarity for now — designed for future depth.
     pub fn mark_trust_level(&self, operand: &Operand) -> TrustTier {
-        // TODO: Later factor in source, certainty, and alignment
-        TrustTier::Shadowed
+        match operand {
+            Operand::Literal { .. } | Operand::Binding { .. } => TrustTier::Sealed,
+            Operand::Wildcard | Operand::InstructionRef(_) => TrustTier::Ambiguous,
+            Operand::Placeholder(_) => TrustTier::Shadowed,
+            Operand::InvalidOperand(_) => TrustTier::Broken,
+        }
     }
 
+    // ===================================================
+    // 🧾 DEBUGGING & FINALIZATION HOOKS
+    // ===================================================
+
     /// 🛡️ Records a debug trace entry.
+    ///
+    /// This method allows the Bearer to log significant events or status
+    /// changes in the operand lifecycle. These entries are picked up by
+    /// Watchtower or dev logs downstream for reflection and error tracing.
     pub fn record_debug_entry(&mut self, entry: DebugEntry) {
         self.debug_trace.push(entry);
     }
 
     /// 📦 Finalizes all resolved operands for handoff.
+    ///
+    /// This step marks the Bearer's resolution phase as complete.
+    /// It verifies that all operands are resolved and adjusts the
+    /// instruction status accordingly.
+    ///
+    /// Future hooks may emit diagnostics to `.logos` or Watchtower overlays.
     pub fn finalize_operands(&mut self) {
-        // TODO: Commit operand set or emit errors
+        if let Some(ref mut instruction) = self.current_instruction {
+            let all_resolved = instruction
+                .resolved_operands
+                .iter()
+                .all(|op| !matches!(op, Operand::InvalidOperand(_) | Operand::Placeholder(_)));
+
+            if all_resolved {
+                instruction.status = InstructionStatus::ReadyToAssemble;
+            } else {
+                instruction.status = InstructionStatus::RequiresResolution;
+
+                // 🧾 Push debug trace for post-resolution awareness
+                instruction.debug_trace.push(DebugEntry {
+                    line: instruction.line,
+                    message: "Finalization failed — unresolved or invalid operand detected.".to_string(),
+                    severity: Severity::Broken,
+                });
+
+                // 🚨 Optional: Emit Watchtower trace
+                Self::report_to_watchtower(instruction);
+            }
+        }
     }
 }
